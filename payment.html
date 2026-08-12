@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure Payment — Nextel Connect</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link href="https://fonts.googleapis.com/css2?family=Nohemi:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<style>
+:root {
+    --primary: #18443e;
+    --primary2: #106146;
+    --bg: #f4f1ea;
+    --surface: #faf9f8;
+    --text: #1a1a1a;
+    --muted: #8c8c8c;
+    --success: #34c759;
+    --border: rgba(0,0,0,0.06);
+    --shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Nohemi', sans-serif; }
+body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.pay-wrap { max-width: 480px; margin: 0 auto; padding: 24px 16px 60px; }
+
+/* Header */
+.pay-header { text-align: center; margin-bottom: 28px; }
+.pay-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(24,68,62,0.08); color: var(--primary); font-size: 12px; font-weight: 600; padding: 6px 16px; border-radius: 999px; margin-bottom: 16px; }
+.pay-badge i { font-size: 14px; }
+.pay-header h1 { font-size: 26px; font-weight: 700; color: var(--primary); margin-bottom: 6px; letter-spacing: -0.02em; }
+.pay-amount { font-size: 32px; font-weight: 800; color: var(--primary); }
+
+/* Countdown */
+.countdown { background: rgba(24,68,62,0.06); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; text-align: center; margin-bottom: 20px; font-size: 13px; font-weight: 600; color: var(--primary); }
+.countdown span { color: #e07c2c; font-weight: 700; }
+
+/* Cards */
+.pay-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.pay-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.pay-card .value { font-size: 16px; font-weight: 700; color: var(--text); }
+.pay-card .value.highlight { color: var(--primary); font-size: 20px; }
+.pay-card .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.copy-btn { background: var(--primary); color: #fff; border: none; border-radius: 999px; padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+.copy-btn:active { transform: scale(0.96); }
+.copy-btn.copied { background: var(--success); }
+
+/* Benefits */
+.benefits { background: rgba(24,68,62,0.04); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin: 16px 0; }
+.benefits h3 { font-size: 14px; color: var(--primary); margin-bottom: 12px; font-weight: 700; }
+.benefits li { list-style: none; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); padding: 4px 0; }
+.benefits li i { color: var(--success); font-size: 16px; }
+
+/* Note */
+.note { padding: 14px 16px; background: rgba(24,68,62,0.04); border: 1px solid var(--border); border-radius: 14px; font-size: 13px; color: var(--muted); line-height: 1.6; text-align: center; margin: 16px 0; }
+.note strong { color: var(--primary); }
+
+/* Contact buttons */
+.contact-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.contact-btn { height: 50px; border: none; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+.contact-btn:hover { transform: translateY(-1px); }
+.contact-btn i { font-size: 20px; }
+.contact-btn.whatsapp { background: #25D366; color: #fff; }
+.contact-btn.telegram { background: #229ED9; color: #fff; }
+
+/* Footer */
+.pay-footer { text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 16px; }
+.pay-footer a { color: var(--primary); text-decoration: underline; }
+
+/* Confirmed overlay */
+.confirmed { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 99999; align-items: center; justify-content: center; flex-direction: column; padding: 40px 24px; text-align: center; }
+.confirmed.show { display: flex; }
+.confirmed-icon { width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary2)); display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 16px 34px rgba(16,97,70,0.28); animation: pop 0.4s ease; }
+@keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.confirmed-icon i { color: #fff; font-size: 40px; }
+.confirmed h2 { font-size: 24px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+.confirmed p { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 28px; max-width: 340px; }
+.confirmed button { width: 100%; max-width: 360px; height: 52px; background: var(--primary); color: #fff; border: none; border-radius: 999px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 12px 26px rgba(16,97,70,0.24); transition: 0.2s; }
+.confirmed button:hover { transform: translateY(-1px); }
+
+@media (max-width: 640px) {
+    .pay-wrap { padding: 16px 14px 50px; }
+    .pay-header h1 { font-size: 22px; }
+    .pay-amount { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<div class="pay-wrap">
+
+    <!-- Header -->
+    <div class="pay-header">
+        <div class="pay-badge"><i class="ri-shield-check-line"></i> Secure Activation</div>
+        <h1>Activate Your eSIM</h1>
+        <p class="pay-amount" id="amountDisplay">₦17,500</p>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown">
+        Payment reservation expires in <span id="countdown">10:00</span>
+    </div>
+
+    <!-- Fee -->
+    <div class="pay-card">
+        <div class="label">eSIM Activation Fee</div>
+        <div class="value highlight" id="feeDisplay">₦17,500</div>
+    </div>
+
+    <!-- Bank Name -->
+    <div class="pay-card">
+        <div class="label">Bank Name</div>
+        <div class="value" id="bankNameVal">Loading…</div>
+    </div>
+
+    <!-- Account Name -->
+    <div class="pay-card">
+        <div class="label">Account Name</div>
+        <div class="value" id="accountNameVal">Loading…</div>
+    </div>
+
+    <!-- Account Number -->
+    <div class="pay-card">
+        <div class="row">
+            <div>
+                <div class="label">Account Number</div>
+                <div class="value highlight" id="accountNum">Loading…</div>
+            </div>
+            <button class="copy-btn" id="copyBtn" onclick="copyAccount()">Copy</button>
+        </div>
+    </div>
+
+    <!-- Benefits -->
+    <div class="benefits">
+        <h3><i class="ri-vip-crown-line"></i> What You Get</h3>
+        <ul>
+            <li><i class="ri-check-line"></i> Unlimited sponsored calls daily</li>
+            <li><i class="ri-check-line"></i> Earn up to ₦108,000 daily</li>
+            <li><i class="ri-check-line"></i> Instant withdrawals after activation</li>
+            <li><i class="ri-check-line"></i> Save unlimited sponsor contacts</li>
+        </ul>
+    </div>
+
+    <!-- Note -->
+    <div class="note">
+        <strong>After payment,</strong> send your proof of transfer to our support team below and your eSIM will be activated within <strong>5–15 minutes</strong>.
+    </div>
+
+    <!-- Contact -->
+    <div class="contact-grid">
+        <button class="contact-btn whatsapp" onclick="contactWhatsApp()">
+            <i class="ri-whatsapp-line"></i> Confirm Payment on WhatsApp
+        </button>
+        <button class="contact-btn telegram" onclick="contactTelegram()">
+            <i class="ri-telegram-line"></i> Confirm Payment on Telegram
+        </button>
+    </div>
+
+    <!-- Footer -->
+    <p class="pay-footer">
+        Once activated, you can <strong>start earning immediately</strong> from your dashboard.<br>
+        <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a>
+    </p>
+
+</div>
+
+<!-- Confirmed -->
+<div class="confirmed" id="confirmedScreen">
+    <div class="confirmed-icon"><i class="ri-check-line"></i></div>
+    <h2>Payment Confirmation Sent</h2>
+    <p>Your proof of payment has been sent. Our team will activate your eSIM within 5–15 minutes.</p>
+    <button onclick="goToDashboard()">Go to Dashboard</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey:            "AIzaSyDrnmtx0LkfMKytzTKQZwXCg1JKZXiJmtU",
+    authDomain:        "glamour-28049.firebaseapp.com",
+    projectId:         "glamour-28049",
+    storageBucket:     "glamour-28049.firebasestorage.app",
+    messagingSenderId: "22177815395",
+    appId:             "1:22177815395:web:2ca7caa2b1626299675156"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app, "(default)");
+const CONFIG_DOC = doc(db, "account", "nexteljeff");
+
+const PLAN_AMOUNTS = { premium: 10500, elite: 17500 };
+
+function getSession() {
+    try { return JSON.parse(localStorage.getItem('nx_session') || '{}'); }
+    catch (_) { return {}; }
+}
+
+function getPaymentData() {
+    const params = new URLSearchParams(window.location.search);
+    const plan = params.get('plan') || 'elite';
+    return {
+        name: (getSession().fullName || 'User'),
+        email: getSession().email || '',
+        phone: getSession().phone || '',
+        amount: PLAN_AMOUNTS[plan] || 17500,
+        plan
+    };
+}
+
+const paymentData = getPaymentData();
+window._waLink = '';
+window._tgLink = '';
+
+async function loadConfig() {
+    try {
+        const snap = await getDoc(CONFIG_DOC);
+        if (snap.exists()) {
+            const d = snap.data();
+            if (d.bankName) document.getElementById('bankNameVal').textContent = d.bankName;
+            if (d.accountName) document.getElementById('accountNameVal').textContent = d.accountName;
+            if (d.accountNumber) document.getElementById('accountNum').textContent = d.accountNumber;
+            window._waLink = d.whatsappLink || '';
+            window._tgLink = d.telegramLink || '';
+        }
+    } catch (e) {
+        console.warn('Config load failed', e);
+    }
+}
+
+function fmt(n) { return '₦' + Number(n).toLocaleString(); }
+
+// Countdown
+let countdownTimer;
+function startCountdown() {
+    let secs = 10 * 60;
+    countdownTimer = setInterval(() => {
+        secs--;
+        if (secs <= 0) { clearInterval(countdownTimer); document.getElementById('countdown').textContent = '00:00'; return; }
+        const m = Math.floor(secs / 60).toString().padStart(2, '0');
+        const s = (secs % 60).toString().padStart(2, '0');
+        document.getElementById('countdown').textContent = m + ':' + s;
+    }, 1000);
+}
+
+// Copy
+window.copyAccount = function () {
+    const num = document.getElementById('accountNum').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(num);
+    else { const ta = document.createElement('textarea'); ta.value = num; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2500);
+};
+
+// WhatsApp
+window.contactWhatsApp = function () {
+    const msg = encodeURIComponent(
+        `Hello Nextel Support,\n\nI just made a payment of ${fmt(paymentData.amount)} for my eSIM activation.\n\nName: ${paymentData.name}\nEmail: ${paymentData.email}\n\nPlease confirm my activation. Thank you.`
+    );
+    const base = window._waLink || 'https://wa.me/2348000000000';
+    const url = base.includes('wa.me') ? base + '?text=' + msg : base;
+    window.open(url, '_blank');
+    showConfirmed();
+};
+
+// Telegram
+window.contactTelegram = function () {
+    const url = window._tgLink || 'https://t.me/nextelconnect';
+    window.open(url, '_blank');
+    showConfirmed();
+};
+
+function showConfirmed() {
+    document.getElementById('confirmedScreen').classList.add('show');
+}
+
+window.goToDashboard = function () {
+    window.location.href = 'dashboard.html';
+};
+
+// Init
+document.addEventListener('DOMContentLoaded', async () => {
+    const f = fmt(paymentData.amount);
+    document.getElementById('amountDisplay').textContent = f;
+    document.getElementById('feeDisplay').textContent = f;
+    await loadConfig();
+    startCountdown();
+});
+</script>
+</body>
+</html>

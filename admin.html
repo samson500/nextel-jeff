@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Nextel Admin</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{background:#F7F6F1;color:#0F3327;font-family:'Poppins',sans-serif;min-height:100vh;overflow-x:hidden;}
+:root{
+  --green:#106146;--green-dark:#0F3327;
+  --bg:#F7F6F1;--card:#FFFFFF;--card2:#F7F6F1;
+  --border:rgba(16,97,70,0.1);--border2:rgba(16,97,70,0.08);
+  --muted:#6E7673;--muted2:#8D9591;--red:#E53935;--teal:#0FA37E;
+}
+
+/* ── LOGIN OVERLAY ── */
+#loginOverlay{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;padding:24px;
+}
+.login-box{
+  width:100%;max-width:380px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:28px;padding:36px 28px;text-align:center;
+  box-shadow:0 18px 45px rgba(15,51,39,0.08);
+}
+.login-logo{font-size:22px;font-weight:800;color:var(--green-dark);margin-bottom:6px;letter-spacing:-0.02em;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+.login-input{
+  width:100%;background:#F7F6F1;border:1.5px solid var(--border);
+  border-radius:999px;padding:14px 20px;color:var(--green-dark);
+  font-size:15px;font-family:'Poppins',sans-serif;outline:none;
+  margin-bottom:14px;transition:0.2s;
+}
+.login-input:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(16,97,70,0.08);}
+.login-btn{
+  width:100%;height:50px;background:linear-gradient(180deg,#106146,#0F3327);color:#fff;
+  border:none;border-radius:999px;font-size:15px;font-weight:600;
+  cursor:pointer;font-family:'Poppins',sans-serif;transition:0.25s;
+  box-shadow:0 12px 26px rgba(16,97,70,0.24);
+}
+.login-btn:hover{transform:translateY(-2px);}
+.login-btn:active{transform:scale(0.98);}
+.login-error{font-size:13px;color:var(--red);margin-top:10px;min-height:18px;}
+
+/* ── ADMIN SHELL ── */
+#adminShell{display:none;}
+
+/* ── HEADER ── */
+.admin-header{
+  background:rgba(247,246,241,0.9);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0 20px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  gap:12px;
+}
+.admin-logo{font-size:18px;font-weight:800;color:var(--green-dark);white-space:nowrap;letter-spacing:-0.01em;}
+.admin-logo span{color:var(--muted2);font-size:12px;font-weight:500;margin-left:8px;}
+.header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.save-all-btn{
+  background:linear-gradient(180deg,#106146,#0F3327);color:#fff;
+  border:none;border-radius:999px;padding:9px 20px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Poppins',sans-serif;transition:0.2s;white-space:nowrap;
+  box-shadow:0 8px 18px rgba(16,97,70,0.24);
+  display:none;
+}
+.save-all-btn.visible{display:inline-flex;align-items:center;gap:6px;}
+.save-all-btn:hover{transform:translateY(-1px);}
+.save-all-btn:active{transform:scale(0.97);}
+.save-all-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+.logout-footer{display:flex;justify-content:center;margin-top:8px;}
+.logout-btn{
+  background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.25);
+  color:var(--red);border-radius:999px;padding:10px 28px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Poppins',sans-serif;transition:0.2s;white-space:nowrap;
+  flex-shrink:0;
+}
+.logout-btn:hover{background:rgba(229,57,53,0.14);}
+
+/* ── CONTENT ── */
+.admin-body{padding:24px 20px 60px;max-width:1100px;margin:0 auto;}
+
+/* ── SECTION ── */
+.section{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:24px;padding:22px 20px;margin-bottom:20px;
+  box-shadow:0 12px 30px rgba(15,51,39,0.05);
+}
+.section-title{
+  font-size:13px;letter-spacing:2px;color:var(--green);
+  font-weight:700;margin-bottom:18px;text-transform:uppercase;
+}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:500px){.stats-grid{grid-template-columns:1fr 1fr;}}
+.stat-card{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:16px;padding:16px;
+}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;font-weight:500;}
+.stat-value{font-size:22px;font-weight:700;color:var(--green-dark);}
+.stat-value.gold{color:var(--green);}
+.stat-value.teal{color:var(--teal);}
+.stat-value.red{color:var(--red);}
+
+/* ── LINK SETTINGS ── */
+.link-row{margin-bottom:16px;}
+.link-label{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;display:block;font-weight:600;}
+.link-current{
+  font-size:12px;color:var(--green);margin-bottom:8px;
+  word-break:break-all;min-height:16px;
+}
+.link-input-row{display:flex;gap:8px;align-items:stretch;}
+.link-input{
+  flex:1;min-width:0;background:#F7F6F1;border:1.5px solid var(--border);
+  border-radius:999px;padding:12px 18px;color:var(--green-dark);
+  font-size:14px;font-family:'Poppins',sans-serif;outline:none;transition:0.2s;
+}
+.link-input:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(16,97,70,0.08);}
+.link-input.error{border-color:var(--red);}
+.link-input.error:focus{box-shadow:0 0 0 4px rgba(229,57,53,0.1);}
+.link-status{font-size:12px;color:var(--green);margin-top:6px;min-height:16px;}
+.link-status.error{color:var(--red);}
+
+.divider{height:1px;background:var(--border2);margin:16px 0;}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:18px;padding:14px 18px;margin-bottom:16px;
+}
+.toggle-label{
+  font-size:13px;font-weight:600;color:var(--green-dark);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+.toggle-label small{
+  font-weight:400;color:var(--muted);font-size:11px;
+}
+.toggle-switch{
+  position:relative;width:48px;height:26px;flex-shrink:0;cursor:pointer;
+}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{
+  position:absolute;inset:0;background:#DDE4DF;border-radius:999px;
+  transition:0.3s;cursor:pointer;
+}
+.toggle-slider::before{
+  content:"";position:absolute;height:20px;width:20px;
+  left:3px;bottom:3px;background:#fff;border-radius:50%;
+  transition:0.3s;box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+.toggle-switch input:checked + .toggle-slider{background:var(--green);}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(22px);}
+.toggle-status{
+  font-size:12px;font-weight:700;min-width:44px;
+  color:var(--muted);
+}
+.toggle-status.active{color:var(--green);}
+.toggle-status.inactive{color:var(--red);}
+
+/* ── TABLE ── */
+.table-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;flex-wrap:wrap;gap:10px;
+}
+.table-actions{
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.refresh-btn{
+  background:var(--card2);border:1px solid var(--border);
+  color:var(--green);border-radius:999px;padding:8px 14px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Poppins',sans-serif;transition:0.2s;
+}
+.refresh-btn:hover{background:#EEF8F2;}
+
+.export-btn{
+  background:var(--green);border:1px solid rgba(16,97,70,0.3);
+  color:#fff;border-radius:999px;padding:8px 14px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Poppins',sans-serif;transition:0.2s;
+}
+.export-btn:hover{background:var(--green-dark);}
+
+.table-wrap{overflow-x:auto;border-radius:18px;border:1px solid var(--border2);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{background:#F7F6F1;}
+th{
+  padding:12px 14px;text-align:left;
+  font-size:11px;letter-spacing:1px;color:var(--muted);
+  font-weight:600;white-space:nowrap;border-bottom:1px solid var(--border2);
+}
+td{padding:12px 14px;border-bottom:1px solid var(--border2);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(16,97,70,0.02);}
+.empty-state{text-align:center;color:var(--muted);padding:40px!important;}
+
+.badge-active{
+  background:rgba(16,97,70,0.1);color:var(--green);
+  border:1px solid rgba(16,97,70,0.25);
+  border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;
+}
+.badge-pending{
+  background:rgba(16,97,70,0.08);color:var(--green);
+  border:1px solid rgba(16,97,70,0.2);
+  border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;
+}
+.badge-not-paid{
+  background:rgba(229,57,53,0.1);color:var(--red);
+  border:1px solid rgba(229,57,53,0.25);
+  border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;
+}
+
+/* ── TOAST ── */
+#toastBar{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--green-dark);color:#fff;
+  padding:12px 24px;border-radius:999px;font-size:14px;font-weight:600;
+  z-index:99999;opacity:0;transition:0.3s;white-space:nowrap;
+  box-shadow:0 12px 26px rgba(16,97,70,0.3);
+  max-width:calc(100vw - 48px);overflow:hidden;text-overflow:ellipsis;
+}
+#toastBar.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:560px){
+  .admin-header{padding:0 16px;height:58px;}
+  .admin-logo{font-size:16px;}
+  .admin-logo span{display:none;}
+  .header-actions{gap:8px;}
+  .save-all-btn{padding:8px 14px;font-size:12px;}
+  .logout-btn{padding:7px 14px;font-size:12px;}
+  .admin-body{padding:18px 14px 50px;}
+  .section{padding:18px 16px;border-radius:20px;margin-bottom:16px;}
+  .section-title{font-size:12px;margin-bottom:14px;}
+  .toggle-row{padding:14px 16px;}
+  .toggle-label{font-size:12.5px;}
+  #toastBar{
+    left:16px;right:16px;transform:translateY(80px);
+    white-space:normal;text-align:center;max-width:none;
+  }
+  #toastBar.show{transform:translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">Nextel</div>
+    <div class="login-sub">Admin Portal — Enter password to continue</div>
+    <input class="login-input" type="password" id="passwordInput" placeholder="Admin password">
+    <button class="login-btn" id="loginBtn">Login</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminShell">
+
+  <div class="admin-header">
+    <div class="admin-logo">Nextel <span>Admin</span></div>
+    <div class="header-actions">
+      <button class="save-all-btn" id="saveAllBtn" type="button">Save Changes</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- LINK SETTINGS -->
+    <div class="section">
+      <div class="section-title">Contact Link Settings</div>
+
+      <!-- WHATSAPP -->
+      <div class="link-row">
+        <span class="link-label">WHATSAPP LINK</span>
+        <div class="link-current" id="currentWADisplay">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="url" id="waLinkInput" placeholder="https://wa.me/2348012345678">
+        </div>
+        <div class="link-status" id="waStatus"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- TELEGRAM -->
+      <div class="link-row">
+        <span class="link-label">TELEGRAM LINK</span>
+        <div class="link-current" id="currentTGDisplay">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="url" id="tgLinkInput" placeholder="https://t.me/nextelconnect">
+        </div>
+        <div class="link-status" id="tgStatus"></div>
+      </div>
+    </div>
+
+    <!-- PAYMENT LINK SETTINGS -->
+    <div class="section">
+      <div class="section-title">Payment Link Settings</div>
+
+      <!-- TOGGLE: Use Payment Links -->
+      <div class="toggle-row">
+        <div class="toggle-label">
+          Enable Payment Links
+          <small>(Use payment links instead of bank transfer)</small>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+          <span class="toggle-status" id="toggleStatusDisplay">OFF</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="usePaymentLinkToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 10K PAYMENT LINK -->
+      <div class="link-row">
+        <span class="link-label">10K PAYMENT LINK</span>
+        <div class="link-current" id="currentPaymentLink1Display">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="url" id="paymentLink1Input" placeholder="https://flutterwave.com/pay/10k">
+        </div>
+        <div class="link-status" id="paymentLink1Status"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 17K PAYMENT LINK -->
+      <div class="link-row">
+        <span class="link-label">17K PAYMENT LINK</span>
+        <div class="link-current" id="currentPaymentLink2Display">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="url" id="paymentLink2Input" placeholder="https://flutterwave.com/pay/17k">
+        </div>
+        <div class="link-status" id="paymentLink2Status"></div>
+      </div>
+    </div>
+
+    <!-- BANK DETAILS -->
+    <div class="section">
+      <div class="section-title">Bank Payment Details</div>
+
+      <div class="link-row">
+        <span class="link-label">BANK NAME</span>
+        <div class="link-current" id="currentBankNameDisplay">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="text" id="bankNameInput" placeholder="e.g. Kuda MFB">
+        </div>
+        <div class="link-status" id="bankNameStatus"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="link-row">
+        <span class="link-label">ACCOUNT NAME</span>
+        <div class="link-current" id="currentAccNameDisplay">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="text" id="accNameInput" placeholder="e.g. NEXTEL CONNECT LTD">
+        </div>
+        <div class="link-status" id="accNameStatus"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="link-row">
+        <span class="link-label">ACCOUNT NUMBER</span>
+        <div class="link-current" id="currentAccNumDisplay">Loading...</div>
+        <div class="link-input-row">
+          <input class="link-input" type="text" id="accNumInput" placeholder="10-digit account number">
+        </div>
+        <div class="link-status" id="accNumStatus"></div>
+      </div>
+    </div>
+
+    <!-- USERS SECTION (NEW) -->
+    <!-- <div class="section">
+      <div class="section-title">Users — Pending Activation (hasPaid: false)</div> -->
+      
+      <!-- Stats for Users -->
+      <!-- <div class="stats-grid" style="margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Total Pending Users</div>
+          <div class="stat-value red" id="pendingUsersCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Registered Users</div>
+          <div class="stat-value gold" id="totalUsersCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Activated Users</div>
+          <div class="stat-value teal" id="activatedUsersCount">0</div>
+        </div>
+      </div> -->
+
+      <!-- <div class="table-header">
+        <div style="font-size:12px;color:var(--muted);">
+          Showing users who have registered but <strong style="color:var(--red);">NOT</strong> paid yet
+        </div>
+        <div class="table-actions">
+          <button class="refresh-btn" id="refreshUsersBtn">
+            <i style="margin-right:4px;">⟳</i> Refresh
+          </button>
+          <button class="export-btn" id="exportUsersBtn">
+            ⬇ Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Joined Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="8" class="empty-state">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div> -->
+
+    <div class="logout-footer">
+      <button class="logout-btn" id="logoutBtn">Log Out</button>
+    </div>
+
+  </div><!-- /admin-body -->
+</div><!-- /adminShell -->
+
+<div id="toastBar"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where }
+                           from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDrnmtx0LkfMKytzTKQZwXCg1JKZXiJmtU",
+  authDomain:        "glamour-28049.firebaseapp.com",
+  projectId:         "glamour-28049",
+  storageBucket:     "glamour-28049.firebasestorage.app",
+  messagingSenderId: "22177815395",
+  appId:             "1:22177815395:web:2ca7caa2b1626299675156"
+};
+
+const ADMIN_PASSWORD = "nexteladmin420";
+const SESSION_KEY    = "nextel_admin_authed";
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app, "(default)");
+
+const CONFIG_DOC = doc(db, "account", "nexteljeff");
+// const USERS_COLLECTION = "ifeUsers";
+
+/* ── Toast ── */
+function toast(msg) {
+  const bar = document.getElementById("toastBar");
+  bar.textContent = msg;
+  bar.classList.add("show");
+  setTimeout(() => bar.classList.remove("show"), 2200);
+}
+
+/* ── Login ── */
+function revealAdmin() {
+  document.getElementById("loginOverlay").style.display = "none";
+  document.getElementById("adminShell").style.display   = "block";
+  loadConfig();
+}
+
+function checkSession() {
+  if (sessionStorage.getItem(SESSION_KEY) === "1") revealAdmin();
+}
+
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const val = document.getElementById("passwordInput").value;
+  const err = document.getElementById("loginError");
+  if (val === ADMIN_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, "1");
+    err.textContent = "";
+    revealAdmin();
+  } else {
+    err.textContent = "Incorrect password.";
+    document.getElementById("passwordInput").value = "";
+  }
+});
+document.getElementById("passwordInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("loginBtn").click();
+});
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+});
+checkSession();
+
+/* ── Field Registry (drives the universal Save Changes button) ── */
+const SAVE_FIELDS = [
+  { field: "whatsappLink",  inputId: "waLinkInput",         displayId: "currentWADisplay",           statusId: "waStatus",           label: "WhatsApp link",    requireUrl: true  },
+  { field: "telegramLink",  inputId: "tgLinkInput",         displayId: "currentTGDisplay",           statusId: "tgStatus",           label: "Telegram link",    requireUrl: true  },
+  { field: "paymentLink1",  inputId: "paymentLink1Input",   displayId: "currentPaymentLink1Display", statusId: "paymentLink1Status", label: "10K payment link", requireUrl: true  },
+  { field: "paymentLink2",  inputId: "paymentLink2Input",   displayId: "currentPaymentLink2Display", statusId: "paymentLink2Status", label: "17K payment link", requireUrl: true  },
+  { field: "bankName",      inputId: "bankNameInput",       displayId: "currentBankNameDisplay",     statusId: "bankNameStatus",     label: "Bank name",        requireUrl: false },
+  { field: "accountName",   inputId: "accNameInput",        displayId: "currentAccNameDisplay",      statusId: "accNameStatus",      label: "Account name",     requireUrl: false },
+  { field: "accountNumber", inputId: "accNumInput",         displayId: "currentAccNumDisplay",       statusId: "accNumStatus",       label: "Account number",   requireUrl: false },
+];
+
+let baseline = {};
+
+/* ── Load Config ── */
+async function loadConfig() {
+  try {
+    const snap = await getDoc(CONFIG_DOC);
+    const data = snap.exists() ? snap.data() : {};
+
+    SAVE_FIELDS.forEach(f => {
+      const val = data[f.field] || "";
+      baseline[f.field] = val;
+      document.getElementById(f.displayId).textContent = val || "Not set";
+      document.getElementById(f.inputId).value = val;
+    });
+
+    const useLinks = data.usePaymentLink || false;
+    document.getElementById("usePaymentLinkToggle").checked = useLinks;
+    updateToggleDisplay(useLinks);
+  } catch (err) {
+    SAVE_FIELDS.forEach(f => {
+      document.getElementById(f.displayId).textContent = "Error loading";
+    });
+  }
+}
+
+/* ── Toggle Display Update ── */
+function updateToggleDisplay(enabled) {
+  const statusEl = document.getElementById("toggleStatusDisplay");
+  if (enabled) {
+    statusEl.textContent = "ON";
+    statusEl.className = "toggle-status active";
+  } else {
+    statusEl.textContent = "OFF";
+    statusEl.className = "toggle-status inactive";
+  }
+}
+
+/* ── Toggle Change Handler ── */
+document.getElementById("usePaymentLinkToggle").addEventListener("change", async function() {
+  const enabled = this.checked;
+  const btn = this;
+  btn.disabled = true;
+  
+  try {
+    await setDoc(CONFIG_DOC, { usePaymentLink: enabled }, { merge: true });
+    updateToggleDisplay(enabled);
+    toast(enabled ? "Payment links enabled!" : "Payment links disabled!");
+  } catch (err) {
+    // Revert if save fails
+    this.checked = !enabled;
+    updateToggleDisplay(!enabled);
+    toast("Failed to save toggle state.");
+    console.error("Toggle save error:", err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── Universal Save: dirty tracking ── */
+const saveAllBtn = document.getElementById("saveAllBtn");
+
+function getDirtyFields() {
+  return SAVE_FIELDS.filter(f => {
+    const val = document.getElementById(f.inputId).value.trim();
+    return val !== (baseline[f.field] || "");
+  });
+}
+
+function refreshSaveButtonVisibility() {
+  saveAllBtn.classList.toggle("visible", getDirtyFields().length > 0);
+}
+
+SAVE_FIELDS.forEach(f => {
+  const input = document.getElementById(f.inputId);
+  input.addEventListener("input", () => {
+    input.classList.remove("error");
+    document.getElementById(f.statusId).textContent = "";
+    document.getElementById(f.statusId).className = "link-status";
+    refreshSaveButtonVisibility();
+  });
+});
+
+saveAllBtn.addEventListener("click", async () => {
+  const dirty = getDirtyFields();
+  if (!dirty.length) return;
+
+  // Validate first — block save and mark invalid fields
+  let hasError = false;
+  dirty.forEach(f => {
+    const input = document.getElementById(f.inputId);
+    const val = input.value.trim();
+    const status = document.getElementById(f.statusId);
+    if (f.requireUrl && val && !val.startsWith("http")) {
+      input.classList.add("error");
+      status.textContent = "Enter a valid URL starting with https://";
+      status.className = "link-status error";
+      hasError = true;
+    } else if (!val) {
+      input.classList.add("error");
+      status.textContent = "Field cannot be empty.";
+      status.className = "link-status error";
+      hasError = true;
+    }
+  });
+  if (hasError) return;
+
+  saveAllBtn.disabled = true;
+  saveAllBtn.textContent = "Saving…";
+
+  const updates = {};
+  dirty.forEach(f => {
+    updates[f.field] = document.getElementById(f.inputId).value.trim();
+  });
+
+  try {
+    await setDoc(CONFIG_DOC, updates, { merge: true });
+    dirty.forEach(f => {
+      const val = updates[f.field];
+      baseline[f.field] = val;
+      document.getElementById(f.displayId).textContent = val || "Not set";
+      document.getElementById(f.statusId).textContent = "✓ Saved.";
+      document.getElementById(f.statusId).className = "link-status";
+    });
+    toast(dirty.length === 1 ? dirty[0].label + " updated!" : dirty.length + " settings updated!");
+    saveAllBtn.classList.remove("visible");
+  } catch (err) {
+    dirty.forEach(f => {
+      document.getElementById(f.statusId).textContent = "Save failed — check Firestore rules.";
+      document.getElementById(f.statusId).className = "link-status error";
+    });
+    toast("Failed to save changes.");
+    console.error("Save error:", err);
+  } finally {
+    saveAllBtn.disabled = false;
+    saveAllBtn.textContent = "Save Changes";
+  }
+});
+
+/* ── LOAD USERS (hasPaid: false) ── */
+// async function loadUsers() {
+//   const tbody = document.getElementById("usersTableBody");
+//   tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Loading users...</td></tr>`;
+
+//   try {
+//     const usersRef = collection(db, USERS_COLLECTION);
+//     const snap = await getDocs(usersRef);
+    
+//     const allUsers = [];
+//     snap.forEach((doc) => {
+//       allUsers.push({ id: doc.id, ...doc.data() });
+//     });
+
+//     // Filter users with hasPaid: false
+//     const pendingUsers = allUsers.filter(u => u.hasPaid === false);
+    
+//     // Update stats
+//     document.getElementById("pendingUsersCount").textContent = pendingUsers.length;
+//     document.getElementById("totalUsersCount").textContent = allUsers.length;
+//     document.getElementById("activatedUsersCount").textContent = allUsers.filter(u => u.hasPaid === true).length;
+
+//     if (pendingUsers.length === 0) {
+//       tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No pending users found. All users have paid! 🎉</td></tr>`;
+//       return;
+//     }
+
+//     // Sort by joinedAt (newest first)
+//     pendingUsers.sort((a, b) => {
+//       const ta = a.joinedAt?.seconds ? a.joinedAt.seconds * 1000 : new Date(a.joinedAt || 0).getTime();
+//       const tb = b.joinedAt?.seconds ? b.joinedAt.seconds * 1000 : new Date(b.joinedAt || 0).getTime();
+//       return tb - ta;
+//     });
+
+//     tbody.innerHTML = pendingUsers.map((u, i) => {
+//       const date = u.joinedAt?.seconds
+//         ? new Date(u.joinedAt.seconds * 1000).toLocaleString("en-NG", {
+//             day: "2-digit", month: "short", year: "numeric",
+//             hour: "2-digit", minute: "2-digit"
+//           })
+//         : u.joinedAt
+//           ? new Date(u.joinedAt).toLocaleString("en-NG", {
+//               day: "2-digit", month: "short", year: "numeric",
+//               hour: "2-digit", minute: "2-digit"
+//             })
+//           : "—";
+
+//       const amount = u.activationAmount || 0;
+//       const fmtAmount = "₦" + Number(amount).toLocaleString("en-NG");
+
+//       return `<tr>
+//         <td style="color:rgba(255,255,255,.3)">${i + 1}</td>
+//         <td style="font-weight:600">${esc(u.fullName || "—")}</td>
+//         <td style="color:rgba(255,255,255,.6)">${esc(u.email || "—")}</td>
+//         <td style="color:rgba(255,255,255,.6)">${esc(u.phone || "—")}</td>
+//         <td><span class="badge-pending">${esc(u.plan || "—")}</span></td>
+//         <td style="color:var(--gold);font-weight:700">${fmtAmount}</td>
+//         <td style="color:rgba(255,255,255,.4);font-size:.78rem;">${date}</td>
+//         <td><span class="badge-not-paid">⏳ Pending</span></td>
+//       </tr>`;
+//     }).join("");
+
+//   } catch (err) {
+//     console.error("loadUsers error:", err);
+//     tbody.innerHTML = `<tr><td colspan="8" class="empty-state">Error: ${esc(err.code || err.message || "unknown")}</td></tr>`;
+//   }
+// }
+
+/* ── EXPORT USERS AS CSV ── */
+// async function exportUsersCSV() {
+//   try {
+//     const usersRef = collection(db, USERS_COLLECTION);
+//     const snap = await getDocs(usersRef);
+    
+//     const allUsers = [];
+//     snap.forEach((doc) => {
+//       allUsers.push({ id: doc.id, ...doc.data() });
+//     });
+
+//     // Filter users with hasPaid: false
+//     const pendingUsers = allUsers.filter(u => u.hasPaid === false);
+
+//     if (pendingUsers.length === 0) {
+//       toast("No pending users to export!");
+//       return;
+//     }
+
+//     // Sort by joinedAt (newest first)
+//     pendingUsers.sort((a, b) => {
+//       const ta = a.joinedAt?.seconds ? a.joinedAt.seconds * 1000 : new Date(a.joinedAt || 0).getTime();
+//       const tb = b.joinedAt?.seconds ? b.joinedAt.seconds * 1000 : new Date(b.joinedAt || 0).getTime();
+//       return tb - ta;
+//     });
+
+//     // CSV Headers
+//     const headers = [
+//       "S/N",
+//       "Full Name",
+//       "Username",
+//       "Email",
+//       "Phone",
+//       "Plan",
+//       "Amount (NGN)",
+//       "Joined Date",
+//       "Status"
+//     ];
+
+//     // CSV Rows
+//     const rows = pendingUsers.map((u, i) => {
+//       const date = u.joinedAt?.seconds
+//         ? new Date(u.joinedAt.seconds * 1000).toLocaleString("en-NG")
+//         : u.joinedAt
+//           ? new Date(u.joinedAt).toLocaleString("en-NG")
+//           : "—";
+
+//       return [
+//         i + 1,
+//         u.fullName || "—",
+//         u.username || "—",
+//         u.email || "—",
+//         u.phone || "—",
+//         u.plan || "—",
+//         u.activationAmount || 0,
+//         date,
+//         "Pending Payment"
+//       ];
+//     });
+
+//     // Build CSV content
+//     let csvContent = headers.join(",") + "\n";
+//     rows.forEach(row => {
+//       csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+//     });
+
+//     // Create and download the CSV file
+//     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+//     const link = document.createElement("a");
+//     const url = URL.createObjectURL(blob);
+//     const timestamp = new Date().toISOString().slice(0, 10);
+//     link.setAttribute("href", url);
+//     link.setAttribute("download", `pending_users_${timestamp}.csv`);
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//     URL.revokeObjectURL(url);
+
+//     toast(`✅ Exported ${pendingUsers.length} pending users!`);
+//   } catch (err) {
+//     console.error("Export error:", err);
+//     toast("Failed to export. Please try again.");
+//   }
+// }
+
+/* ── Refresh Users ── */
+// document.getElementById("refreshUsersBtn").addEventListener("click", () => {
+//   loadUsers();
+//   toast("Users refreshed!");
+// });
+
+// /* ── Export Users ── */
+// document.getElementById("exportUsersBtn").addEventListener("click", exportUsersCSV);
+
+/* ── Helper: Escape HTML ── */
+function esc(str) {
+  if (!str) return "—";
+  return String(str)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>

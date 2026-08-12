@@ -1,0 +1,19 @@
+{
+    "name": "Nextel Connect",
+    "short_name": "Nextel",
+    "description": "Buy eSIMs, airtime, data and more — and earn on Nextel Connect.",
+    "id": "/",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "portrait-primary",
+    "background_color": "#18443E",
+    "theme_color": "#18443E",
+    "categories": ["finance", "shopping", "utilities"],
+    "icons": [
+        { "src": "/favicon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/favicon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/favicon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

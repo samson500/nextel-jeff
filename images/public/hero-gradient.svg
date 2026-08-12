@@ -1,0 +1,14 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 779 677" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="gradient" filter="url(#filter0_f_0_64)">
+<ellipse id="Ellipse 3" cx="303" cy="256" rx="113" ry="66" fill="var(--fill-0, #DCEB6A)"/>
+<ellipse id="Ellipse 2" cx="439" cy="421.5" rx="150" ry="20.5" fill="var(--fill-0, #DCEB6A)"/>
+<ellipse id="Ellipse 1" opacity="0.65" cx="325.5" cy="412.5" rx="96.5" ry="74.5" fill="var(--fill-0, #18443E)"/>
+</g>
+<defs>
+<filter id="filter0_f_0_64" x="0" y="0" width="779" height="677" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="95" result="effect1_foregroundBlur_0_64"/>
+</filter>
+</defs>
+</svg>

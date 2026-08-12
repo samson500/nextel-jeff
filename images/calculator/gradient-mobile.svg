@@ -1,0 +1,14 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 735.717 537.853" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="gradient" opacity="0.2" filter="url(#filter0_f_0_8)">
+<ellipse id="Ellipse 3956" cx="466.792" cy="268.926" rx="126.013" ry="126.014" fill="var(--fill-0, #18443E)"/>
+<foreignObject x="0" y="-4.82606e-06" width="735.717" height="537.853"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(0px);clip-path:url(#bgblur_0_0_8_clip_path);height:100%;width:100%"></div></foreignObject><ellipse id="Ellipse 3955" data-figma-bg-blur-radius="0" cx="240.401" cy="246.179" rx="97.4889" ry="97.4896" fill="var(--fill-0, #DCEB6A)"/>
+</g>
+<defs>
+<filter id="filter0_f_0_8" x="0" y="-4.82606e-06" width="735.717" height="537.853" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="71.456" result="effect1_foregroundBlur_0_8"/>
+</filter>
+<clipPath id="bgblur_0_0_8_clip_path" transform="translate(0 4.82606e-06)"><ellipse cx="240.401" cy="246.179" rx="97.4889" ry="97.4896"/>
+</clipPath></defs>
+</svg>
