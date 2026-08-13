@@ -195,10 +195,6 @@
             <!--[if BLOCK]><![endif]-->                <div class="flex items-center gap-2.5 shrink-0">
                     
                     <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    <!--[if BLOCK]><![endif]-->
-                        <a href="profile.html" wire:navigate
-                           class="size-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-black/[0.04]" aria-label="Your profile">
-                            <!--[if BLOCK]><![endif]-->                                <img src="https://nextelconnect.de-fra-1.linodeobjects.com/avatars/019fcf2f-4a39-71cb-8ed1-4fc6a43b1465.jpeg" alt="" class="size-full object-cover">
-                            <!--[if ENDBLOCK]><![endif]-->                        </a>
                     <!--[if ENDBLOCK]><![endif]-->                </div>
             <!--[if ENDBLOCK]><![endif]-->        </div>
     </div>
@@ -234,6 +230,42 @@
             </div>
         </div>
 
+        <!-- E-SIM verify (above withdrawal) -->
+        <div data-nx-verify-section style="display:none;" class="flex flex-col gap-4">
+            <div class="flex items-center gap-2.5">
+                <span class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0"><i class="ri-shield-check-line text-[18px]"></i></span>
+                <h3 class="font-heading font-medium text-text text-[18px]">Verify E-SIM</h3>
+                <button type="button" class="ml-auto text-muted font-sans text-[13px]" data-nx-verify-cancel>Cancel</button>
+            </div>
+
+            <div class="bg-surface rounded-[20px] p-5 flex flex-col gap-4">
+                <div class="rounded-[20px] p-5 text-center" style="background: linear-gradient(135deg, #18443e, #106146);">
+                    <span class="font-sans text-[11px] text-white/50 uppercase tracking-[0.12em]">Withdrawable Balance</span>
+                    <h2 class="font-heading font-bold text-[32px] mt-1 text-white" data-nx-vbalance>₦0</h2>
+                    <p class="font-sans text-[12px] text-white/60 mt-1">Your earnings are ready for withdrawal</p>
+                </div>
+
+                <div class="flex flex-col gap-2.5">
+                    <p class="font-sans text-[14px] text-text">Verify Your E-SIM</p>
+                    <p class="font-sans text-[13px] text-muted leading-relaxed">Enter the E-SIM line linked to your Nextel account to complete your withdrawal.</p>
+                    <label class="font-sans text-[13px] font-semibold text-text mt-1">E-SIM Line</label>
+                    <input type="text" data-nx-vinput placeholder="NXT-XXXXXXXXX" maxlength="13"
+                        class="h-[48px] w-full px-4 rounded-[14px] border-[0.5px] border-primary font-sans text-[15px] font-semibold text-center uppercase text-primary bg-transparent outline-none focus:ring-1 focus:ring-primary" />
+                    <div class="font-sans text-[12px] text-danger min-h-[16px]" data-nx-verr></div>
+                    <button type="button" class="w-full h-[48px] rounded-full bg-primary/10 text-primary font-heading font-semibold text-[15px] border-[0.5px] border-primary/30 mt-1" data-nx-get-esim>Click to Get E-SIM</button>
+                    <button type="button" class="w-full h-[48px] rounded-full bg-primary text-white font-heading font-semibold text-[15px]" data-nx-vverify>Verify E-SIM</button>
+                </div>
+
+                <div class="flex gap-3 pt-3 border-t border-muted/10">
+                    <div class="text-primary shrink-0"><i class="ri-question-line text-[18px]"></i></div>
+                    <div>
+                        <p class="font-sans font-semibold text-[13px] text-primary mb-1">Why do I need an E-SIM?</p>
+                        <p class="font-sans text-[12px] text-muted leading-relaxed">Your E-SIM line verifies your account before withdrawals can be processed. It keeps every withdrawal secure.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Withdrawal threshold -->
         <div class="bg-surface rounded-[20px] p-5 flex flex-col gap-3">
             <div class="flex items-center justify-between">
@@ -247,23 +279,6 @@
             <p class="font-sans text-[13px] font-semibold" data-nx-wd-status-title style="color: #d7771f;">🔒 Withdrawal Locked</p>
             <p class="font-sans text-[12px] text-muted" data-nx-wd-status-text>Keep earning from sponsored calls until you reach ₦15,000.</p>
             <button type="button" class="w-full h-[45px] rounded-full font-heading font-bold text-[15px] border-none cursor-pointer" data-nx-wd-withdraw style="background: linear-gradient(135deg, #c7e95a, #a9d83a); color: #0f3327;">Withdraw Now</button>
-        </div>
-
-        <!-- E-SIM verify (hidden) -->
-        <div data-nx-verify-section style="display:none;" class="bg-surface rounded-[20px] p-5 flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-heading font-bold text-[18px] text-primary">Verify E-SIM</h3>
-                <button type="button" class="text-muted font-sans text-[13px]" data-nx-verify-cancel>Cancel</button>
-            </div>
-            <div class="rounded-[16px] p-4 text-center text-white" style="background: linear-gradient(135deg, #18443e, #106146);">
-                <span class="font-sans text-[11px] text-white/50 uppercase">Withdrawable Balance</span>
-                <h2 class="font-heading font-bold text-[28px] mt-1" data-nx-vbalance>₦0</h2>
-            </div>
-            <p class="font-sans text-[13px] text-muted">Enter the E-SIM line linked to your account.</p>
-            <input type="text" data-nx-vinput placeholder="NXT-XXXXXXXXX" maxlength="13" class="w-full p-3.5 rounded-[14px] border-2 border-muted/20 font-sans text-[15px] font-semibold text-center uppercase text-primary bg-surface focus:outline-none focus:border-primary" />
-            <div class="font-sans text-[12px] text-danger min-h-[16px]" data-nx-verr></div>
-            <button type="button" class="w-full h-[48px] rounded-full bg-primary/10 text-primary font-heading font-semibold text-[15px] border-2 border-primary/20 mb-3" data-nx-get-esim>Click to Get E-SIM</button>
-            <button type="button" class="w-full h-[48px] rounded-full bg-primary text-white font-heading font-semibold text-[15px]" data-nx-vverify>Verify E-SIM</button>
         </div>
 
         <!-- Withdrawal History -->

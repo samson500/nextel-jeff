@@ -195,10 +195,6 @@
             <!--[if BLOCK]><![endif]-->                <div class="flex items-center gap-2.5 shrink-0">
                     
                     <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    <!--[if BLOCK]><![endif]-->
-                        <a href="profile.html" wire:navigate
-                           class="size-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-black/[0.04]" aria-label="Your profile">
-                            <!--[if BLOCK]><![endif]-->                                <img src="https://nextelconnect.de-fra-1.linodeobjects.com/avatars/019fcf2f-4a39-71cb-8ed1-4fc6a43b1465.jpeg" alt="" class="size-full object-cover">
-                            <!--[if ENDBLOCK]><![endif]-->                        </a>
                     <!--[if ENDBLOCK]><![endif]-->                </div>
             <!--[if ENDBLOCK]><![endif]-->        </div>
     </div>
@@ -257,6 +253,38 @@
             </div>
         </div>
 
+        <!-- Bank Account Details -->
+        <div class="flex flex-col gap-[15px]">
+            <p class="font-heading font-medium text-text text-[18px]">Bank Account Details</p>
+            <div class="bg-surface rounded-[20px] p-5 flex flex-col gap-4 shadow-[0_4px_9px_rgba(194,194,194,0.07),0_16px_16px_rgba(194,194,194,0.06)]">
+                <div class="flex flex-col gap-1.5 w-full">
+                    <label class="font-sans text-[14px] text-text">Bank</label>
+                    <div style="position:relative;">
+                        <input type="text" id="bankSearch" placeholder="Search your bank…" autocomplete="off"
+                            class="h-[45px] w-full px-[15px] rounded-[30px] border-[0.5px] border-primary bg-transparent font-sans text-[13px] text-text outline-none focus:ring-1 focus:ring-primary" />
+                        <input type="hidden" id="bankCode" />
+                        <div id="bankDropdown" style="display:none;position:absolute;top:48px;left:0;right:0;max-height:240px;overflow-y:auto;background:#fff;border-radius:0 0 16px 16px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:50;"></div>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1.5 w-full">
+                    <label class="font-sans text-[14px] text-text">Account Number</label>
+                    <input type="tel" id="accountNumberInput" maxlength="10" placeholder="10-digit account number" class="h-[45px] px-[15px] rounded-[30px] border-[0.5px] border-primary bg-transparent font-sans text-[13px] text-text outline-none focus:ring-1 focus:ring-primary" />
+                </div>
+                <div class="flex flex-col gap-1.5 w-full">
+                    <label class="font-sans text-[14px] text-text">Account Name</label>
+                    <div id="accountNameBox" class="h-[45px] px-[15px] rounded-[30px] border-[0.5px] border-muted/30 bg-background flex items-center">
+                        <span id="accountNameDisplay" class="font-sans text-[13px] text-muted">Enter account number to verify</span>
+                    </div>
+                </div>
+                <button type="button" id="verifyAccountBtn" class="w-full h-[45px] rounded-full bg-primary text-white font-heading font-semibold text-[14px] hover:opacity-90 transition">
+                    Verify Account
+                </button>
+                <button type="button" id="saveAccountBtn" class="w-full h-[45px] rounded-full bg-primary text-white font-heading font-semibold text-[14px] hover:opacity-90 transition" style="display:none;">
+                    Save Account Details
+                </button>
+            </div>
+        </div>
+
         <!-- Others -->
         <div class="flex flex-col gap-[15px]">
             <p class="font-heading font-medium text-text text-[18px]">Others</p>
@@ -298,7 +326,7 @@
             <i class="ri-home-5-line text-[20px]"></i>
             <span class="font-sans text-[11px]">Home</span>
         </a>
-            <a href="#" href="../dashboard.html" wire:navigate
+            <a href="transactions.html" wire:navigate
            class="flex flex-col items-center gap-1.5 transition-colors text-muted hover:text-primary"><i class="ri-arrow-left-down-line text-[20px]"></i><span class="font-sans text-[11px]">Withdraw</span>
         </a>
             <a href="profile.html" wire:navigate

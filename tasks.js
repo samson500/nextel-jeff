@@ -631,7 +631,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                 </button>
                 <div class="nx-gate-icon"><i class="ri-lock-line"></i></div>
                 <h3>Activate your account</h3>
-                <p>Your account is currently locked. You must purchase an E-SIM plan to activate your account before you can start making premium line calls, adding your local bank details, or running withdrawals.</p>
+                <p>Purchase your eSIM now to activate your account so you can withdraw your earnings and unlock more tasks.</p>
                 <button type="button" class="nx-gate-btn" data-nx-gate-activate>Activate Now</button>
             </div>
         `;
@@ -1051,6 +1051,25 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         return p;
     }
 
+    function showBankRequiredPopup() {
+        var overlay = el('div', '');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:28px;padding:36px 28px;max-width:360px;width:100%;text-align:center;animation:nxFabPop 0.35s cubic-bezier(0.34,1.2,0.64,1);">' +
+            '<button type="button" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:#f1f5f9;border:none;color:#64748b;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;">&times;</button>' +
+            '<div style="width:72px;height:72px;margin:0 auto 20px;border-radius:50%;background:rgba(255,77,109,0.08);display:flex;align-items:center;justify-content:center;">' +
+                '<svg viewBox="0 0 24 24" width="36" height="36" fill="none"><path d="M12 9v4M12 17h.01" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="#ff4d6d" stroke-width="2"/></svg>' +
+            '</div>' +
+            '<h3 style="font-size:22px;font-weight:700;color:#18443e;margin:0 0 10px;">Bank Account Required</h3>' +
+            '<p style="font-size:14px;color:#8c8c8c;margin:0 0 24px;line-height:1.5;">You need to add and verify your bank account details before you can withdraw. Go to your profile to set this up.</p>' +
+            '<a href="profile.html" style="display:block;width:100%;padding:14px;border-radius:999px;background:#18443e;color:#fff;text-decoration:none;font-weight:600;font-size:15px;text-align:center;">Go to Profile</a>' +
+        '</div>';
+        overlay.querySelector('div').style.position = 'relative';
+        document.body.appendChild(overlay);
+        overlay.querySelector('button').addEventListener('click', function () { overlay.remove(); });
+        overlay.querySelector('a').addEventListener('click', function () { overlay.remove(); });
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    }
+
     function showWithdrawLockedPopup() {
         var p = $('nx-wd-locked');
         if (!p) {
@@ -1458,11 +1477,18 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             } else if (t.hasAttribute('data-nx-wd-close')) {
                 hideWithdrawPage();
             } else if (t.hasAttribute('data-nx-wd-withdraw')) {
+                // Bank details check FIRST
+                var session = (window.NexAuth && NexAuth.session()) || {};
+                if (!session.bankAccountName) {
+                    showBankRequiredPopup();
+                    return;
+                }
+                // Then balance check
                 if (earnings() < CONST.WITHDRAW_THRESHOLD) {
                     showWithdrawLockedPopup();
                     return;
                 }
-                // On transactions page, show inline verify section
+                // Has bank details + balance — proceed to E-SIM verify
                 var vsec = $('[data-nx-verify-section]');
                 if (vsec) {
                     vsec.style.display = 'block';
@@ -1498,9 +1524,9 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             } else if (t.hasAttribute('data-nx-call-close') || t.hasAttribute('data-nx-end-call')) {
                 endCall();
             } else if (t.hasAttribute('data-nx-task-ai')) {
-                runAiCallTask();
+                showGate();
             } else if (t.hasAttribute('data-nx-task-line')) {
-                runLineCallTask();
+                showGate();
             } else if (t.hasAttribute('data-nx-open-esim')) {
                 e.preventDefault();
                 showEsimModal();
@@ -1573,12 +1599,13 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         } else if (isChangePassword) {
             wireEvents();
             wireChangePassword();
-        } else if (isEditProfile) {
+        } else if (isProfile) {
             document.body.appendChild(buildInactiveFab());
             wireEvents();
             initFabDrag();
             updateFabVisibility();
             personaliseProfile();
+            wireBankAccount();
             setInterval(personaliseProfile, 2000);
         } else {
             // Dashboard — build overlays + inject tasks
@@ -1682,6 +1709,194 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
     function val(ctx, name) {
         var el = ctx.querySelector('[data-model="' + name + '"]');
         return el ? (el.value || '').trim() : '';
+    }
+
+    /* ====================================================================
+     * BANK ACCOUNT — verify via nualt API + save to localStorage
+     * ==================================================================== */
+    var NUALT_API_KEY = 'nualt_7iPi3PCfTkV1MfG1PfqNTyGP2_9c3LmFNHZZ4m_Be_I';
+    var NUALT_BANKS = [{name:"3Line Card Management Limited",code:"110005"},{name:"9 Payment Service Bank",code:"120001"},{name:"AB Microfinance Bank",code:"090270"},{name:"ABU Microfinance Bank",code:"090197"},{name:"AG Mortgage Bank",code:"100028"},{name:"AL-Barakah Microfinance Bank",code:"090133"},{name:"AMJU Unique Microfinance Bank",code:"090180"},{name:"AMML MFB",code:"090116"},{name:"ASOSavings & Loans",code:"090001"},{name:"Aaa Finance",code:"050005"},{name:"Abbey Mortgage Bank",code:"070010"},{name:"Above Only Microfinance Bank",code:"090260"},{name:"Abucoop  Microfinance Bank",code:"090424"},{name:"Abulesoro Microfinance Bank Ltd",code:"090545"},{name:"Accelerex Network",code:"090202"},{name:"Access Bank",code:"044"},{name:"AccessMobile",code:"100013"},{name:"Accion Microfinance Bank",code:"090134"},{name:"Ada Microfinance Bank",code:"090483"},{name:"Addosser Microfinance Bank",code:"090160"},{name:"Adeyemi College Staff Microfinance Bank",code:"090268"},{name:"Afekhafe Microfinance Bank",code:"090292"},{name:"Afemai Microfinance Bank",code:"090518"},{name:"Agosasa Microfinance Bank",code:"090371"},{name:"Aku Microfinance Bank",code:"090531"},{name:"Akuchukwu Microfinance Bank Ltd",code:"090561"},{name:"Akwa Savings & Loans Limited",code:"070025"},{name:"Al-Hayat Microfinance Bank",code:"090277"},{name:"Alekun Microfinance Bank",code:"090259"},{name:"Alert Microfinance Bank",code:"090297"},{name:"Allworkers Microfinance Bank",code:"090131"},{name:"Ally Microfinance Bank",code:"090548"},{name:"Alpha Kapital Microfinance Bank",code:"090169"},{name:"Alvana Microfinance Bank",code:"090489"},{name:"Amac Microfinance Bank",code:"090394"},{name:"Ampersand Microfinance Bank",code:"090529"},{name:"Anchorage Microfinance Bank",code:"090476"},{name:"Aniocha Microfinance Bank",code:"090469"},{name:"Apeks Microfinance Bank",code:"090143"},{name:"Apple  Microfinance Bank",code:"090376"},{name:"Aramoko Microfinance Bank",code:"090307"},{name:"Arca Payments",code:"110011"},{name:"Arise Microfinance Bank",code:"090282"},{name:"Aspire Microfinance Bank Ltd",code:"090544"},{name:"Assets Matrix Microfinance Bank",code:"090287"},{name:"Assets Microfinance Bank",code:"090473"},{name:"Astrapolaris Microfinance Bank",code:"090172"},{name:"Atbu  Microfinance Bank",code:"090451"},{name:"Auchi Microfinance Bank",code:"090264"},{name:"Avuenegbe Microfinance Bank",code:"090478"},{name:"Aztec Microfinance Bank",code:"090540"},{name:"BC Kash Microfinance Bank",code:"090127"},{name:"BRIDGEWAY MICROFINANCE BANK",code:"090393"},{name:"Baines Credit Microfinance Bank",code:"090188"},{name:"Balera Microfinance Bank Ltd",code:"090563"},{name:"Balogun Fulani  Microfinance Bank",code:"090181"},{name:"Balogun Gambari Microfinance Bank",code:"090326"},{name:"Banex Microfinance Bank",code:"090425"},{name:"Baobab Microfinance Bank",code:"090136"},{name:"Bayero Microfinance Bank",code:"090316"},{name:"Benysta Microfinance Bank",code:"090413"},{name:"Beta-Access Yello",code:"100052"},{name:"Bipc Microfinance Bank",code:"090336"},{name:"Bishopgate Microfinance Bank",code:"090555"},{name:"Blue Investments Microfinance Bank",code:"090538"},{name:"Bluewhales  Microfinance Bank",code:"090431"},{name:"Boctrust Microfinance Bank",code:"090117"},{name:"Boi Mf Bank",code:"090444"},{name:"Boji Boji Microfinance Bank",code:"090494"},{name:"Bonghe Microfinance Bank",code:"090319"},{name:"Borgu Microfinance Bank",code:"090395"},{name:"Borno Renaissance Microfinance Bank",code:"090508"},{name:"Boromu Microfinance Bank",code:"090501"},{name:"Borstal Microfinance Bank",code:"090454"},{name:"Bosak Microfinance Bank",code:"090176"},{name:"Bowen Microfinance Bank",code:"090148"},{name:"Branch International Financial Services",code:"050006"},{name:"Brent Mortgage Bank",code:"070015"},{name:"Brethren Microfinance Bank",code:"090293"},{name:"Brightway Microfinance Bank",code:"090308"},{name:"Broadview Microfinance Bank Ltd",code:"090568"},{name:"Bubayero Microfinance Bank",code:"090512"},{name:"Bud Infrastructure Limited",code:"110021"},{name:"Business Support Microfinance Bank",code:"090406"},{name:"CEMCS Microfinance Bank",code:"090154"},{name:"CIT Microfinance Bank",code:"090144"},{name:"Calabar Microfinance Bank",code:"090415"},{name:"Capitalmetriq Swift Microfinance Bank",code:"090509"},{name:"Capricorn Digital",code:"110023"},{name:"Capstone Mf Bank",code:"090445"},{name:"Carbon",code:"100026"},{name:"Caretaker Microfinance Bank",code:"090472"},{name:"Cashconnect   Microfinance Bank",code:"090360"},{name:"Catland Microfinance Bank",code:"090498"},{name:"Cedar Microfinance Bank Ltd",code:"090562"},{name:"Cellulant",code:"100005"},{name:"Cellulant Pssp",code:"110012"},{name:"Central Bank Of Nigeria",code:"000028"},{name:"ChamsMobile",code:"303"},{name:"Chanelle Bank",code:"090397"},{name:"Chase Microfinance Bank",code:"090523"},{name:"Cherish Microfinance Bank",code:"090440"},{name:"Chibueze Microfinance Bank",code:"090416"},{name:"Chikum Microfinance Bank",code:"090141"},{name:"Chukwunenye  Microfinance Bank",code:"090490"},{name:"Cintrust Microfinance Bank",code:"090480"},{name:"Citi Bank",code:"023"},{name:"Citizen Trust Microfinance Bank Ltd",code:"090343"},{name:"Cloverleaf  Microfinance Bank",code:"090511"},{name:"Coalcamp Microfinance Bank",code:"090254"},{name:"Coastline Microfinance Bank",code:"090374"},{name:"Confidence Microfinance Bank Ltd",code:"090530"},{name:"Consistent Trust Microfinance Bank Ltd",code:"090553"},{name:"Consumer Microfinance Bank",code:"090130"},{name:"Contec Global Infotech Limited (NowNow)",code:"100032"},{name:"Coop Mortgage Bank",code:"070021"},{name:"Corestep Microfinance Bank",code:"090365"},{name:"Coronation Merchant Bank",code:"060001"},{name:"County Finance Ltd",code:"050001"},{name:"Covenant Microfinance Bank",code:"070006"},{name:"Credit Afrique Microfinance Bank",code:"090159"},{name:"Crescent Microfinance Bank",code:"090526"},{name:"Crossriver  Microfinance Bank",code:"090429"},{name:"Crowdforce",code:"110017"},{name:"Crutech  Microfinance Bank",code:"090414"},{name:"DOT MICROFINANCE BANK",code:"090470"},{name:"Davodani  Microfinance Bank",code:"090391"},{name:"Daylight Microfinance Bank",code:"090167"},{name:"Delta Trust Mortgage Bank",code:"070023"},{name:"ENaira",code:"000033"},{name:"Eagle Flight Microfinance Bank",code:"090294"},{name:"Eartholeum",code:"100021"},{name:"Ebsu Microfinance Bank",code:"090427"},{name:"EcoBank PLC",code:"050"},{name:"EcoMobile",code:"100030"},{name:"Ecobank Xpress Account",code:"100008"},{name:"Edfin Microfinance Bank",code:"090310"},{name:"Egwafin Microfinance Bank Ltd",code:"090556"},{name:"Ek-Reliable Microfinance Bank",code:"090389"},{name:"Ekimogun Microfinance Bank",code:"090552"},{name:"Ekondo MFB",code:"090097"},{name:"Emeralds Microfinance Bank",code:"090273"},{name:"Empire trust MFB",code:"090114"},{name:"Enrich Microfinance Bank",code:"090539"},{name:"Enterprise Bank",code:"000019"},{name:"Esan Microfinance Bank",code:"090189"},{name:"Eso-E Microfinance Bank",code:"090166"},{name:"Evangel Microfinance Bank",code:"090304"},{name:"Evergreen Microfinance Bank",code:"090332"},{name:"Ewt Microfinance Bank",code:"090572"},{name:"Excellent Microfinance Bank",code:"090541"},{name:"Eyowo MFB",code:"090328"},{name:"FAST Microfinance Bank",code:"090179"},{name:"FBN Mortgages Limited",code:"090107"},{name:"FBNMobile",code:"100014"},{name:"FBNQUEST Merchant Bank",code:"060002"},{name:"FCMB Easy Account",code:"100031"},{name:"FEDETH MICROFINANCE BANK",code:"090482"},{name:"FET",code:"100001"},{name:"FFS Microfinance Bank",code:"090153"},{name:"FINATRUST MICROFINANCE BANK",code:"608"},{name:"FSDH Merchant Bank",code:"400001"},{name:"Fairmoney Microfinance Bank Ltd",code:"090551"},{name:"Fame Microfinance Bank",code:"090330"},{name:"Fcmb Microfinance Bank",code:"090409"},{name:"Fct Microfinance Bank",code:"090290"},{name:"Federal Polytechnic Nekede Microfinance Bank",code:"090398"},{name:"Federal University Dutse  Microfinance Bank",code:"090318"},{name:"Federalpoly Nasarawamfb",code:"090298"},{name:"Fewchore Finance Company Limited",code:"050002"},{name:"Fha Mortgage Bank Ltd",code:"070026"},{name:"Fidelity Bank",code:"070"},{name:"Fidelity Mobile",code:"100019"},{name:"Fidfund Microfinance Bank",code:"090126"},{name:"Fims Microfinance Bank",code:"090507"},{name:"Finca Microfinance Bank",code:"090400"},{name:"Firmus MFB",code:"090366"},{name:"First Bank PLC",code:"011"},{name:"First City Monument Bank",code:"214"},{name:"First Generation Mortgage Bank",code:"070014"},{name:"First Heritage Microfinance Bank",code:"090479"},{name:"First Multiple Microfinance Bank",code:"090163"},{name:"First Option Microfinance Bank",code:"090285"},{name:"First Royal Microfinance Bank",code:"090164"},{name:"Firstmidas Microfinance Bank Ltd",code:"090575"},{name:"Flutterwave Technology Solutions Limited",code:"110002"},{name:"Foresight Microfinance Bank",code:"090521"},{name:"Fortis Microfinance Bank",code:"070002"},{name:"FortisMobile",code:"100016"},{name:"Fortress Microfinance Bank",code:"090486"},{name:"Fullrange Microfinance Bank",code:"090145"},{name:"Futminna Microfinance Bank",code:"090438"},{name:"Futo Microfinance Bank",code:"090158"},{name:"GOODNEWS MFB",code:"090495"},{name:"GTMobile",code:"100009"},{name:"Garki Microfinance Bank",code:"090484"},{name:"Gashua Microfinance Bank",code:"090168"},{name:"Gateway Mortgage Bank",code:"070009"},{name:"Gbede Microfinance Bank",code:"090579"},{name:"Giant Stride Microfinance Bank",code:"090475"},{name:"Giginya Microfinance Bank",code:"090411"},{name:"Girei Microfinance Bank",code:"090186"},{name:"Giwa Microfinance Bank",code:"090441"},{name:"Globus Bank",code:"103"},{name:"Glory Microfinance Bank",code:"090278"},{name:"Gmb Microfinance Bank",code:"090408"},{name:"GoMoney",code:"100022"},{name:"Good Neighbours Microfinance Bank",code:"090467"},{name:"Gowans Microfinance Bank",code:"090122"},{name:"Green Energy Microfinance Bank Ltd",code:"090550"},{name:"GreenBank Microfinance Bank",code:"090178"},{name:"Greenville Microfinance Bank",code:"090269"},{name:"Greenwich Merchant Bank",code:"060004"},{name:"Grooming Microfinance Bank",code:"090195"},{name:"Gti  Microfinance Bank",code:"090385"},{name:"Guaranty Trust Bank",code:"058"},{name:"Gwong Microfinance Bank",code:"090500"},{name:"Hackman Microfinance Bank",code:"090147"},{name:"Haggai Mortgage Bank Limited",code:"070017"},{name:"Halacredit Microfinance Bank",code:"090291"},{name:"Hasal Microfinance Bank",code:"090121"},{name:"Headway Microfinance Bank",code:"090363"},{name:"Hedonmark",code:"100017"},{name:"Heritage Bank",code:"030"},{name:"HighStreet Microfinance Bank",code:"090175"},{name:"Highland Microfinance Bank",code:"090418"},{name:"Homebase Mortgage",code:"070024"},{name:"Hopepsb",code:"120002"},{name:"IBILE Microfinance Bank",code:"090118"},{name:"IRL Microfinance Bank",code:"090149"},{name:"Ibeto  Microfinance Bank",code:"090439"},{name:"Ibolo Micorfinance Bank Ltd",code:"090532"},{name:"Ibom Fadama Microfinance Bank",code:"090519"},{name:"Ibu-Aje Microfinance",code:"090488"},{name:"Ic Globalmicrofinance Bank",code:"090520"},{name:"Ijebu-Ife Microfinance Bank Ltd",code:"090546"},{name:"Ikenne Microfinance Bank",code:"090324"},{name:"Ikire Microfinance Bank",code:"090279"},{name:"Ikoyi-Osun Microfinance Bank",code:"090536"},{name:"Ilaro Poly Microfinance Bank Ltd",code:"090571"},{name:"Ilasan Microfinance Bank",code:"090370"},{name:"Illorin Microfinance Bank",code:"090350"},{name:"Ilora Microfinance Bank",code:"090430"},{name:"Imo State Microfinance Bank",code:"090258"},{name:"Imowo Microfinance Bank",code:"090417"},{name:"Imperial Homes Mortgage Bank",code:"100024"},{name:"Infinity Microfinance Bank",code:"090157"},{name:"Infinity Trust Mortgage Bank",code:"070016"},{name:"Innovectives Kesh",code:"100029"},{name:"Insight Microfinance Bank",code:"090434"},{name:"Intellifin",code:"100027"},{name:"Interland Microfinance Bank",code:"090386"},{name:"Interswitch Financial Inclusion Services (Ifis)",code:"110010"},{name:"Interswitch Limited",code:"110003"},{name:"Iperu Microfinance Bank",code:"090493"},{name:"Isaleoyo Microfinance Bank",code:"090377"},{name:"Ishie  Microfinance Bank",code:"090428"},{name:"Isuofia Microfinance Bank",code:"090353"},{name:"Itex Integrated Services Limited",code:"090211"},{name:"Iwade Microfinance Bank Ltd",code:"090578"},{name:"Iwoama Microfinance Bank",code:"090543"},{name:"Iyamoye Microfinance Bank Ltd",code:"090570"},{name:"Iyeru Okin Microfinance Bank Ltd",code:"090337"},{name:"Izon Microfinance Bank",code:"090421"},{name:"Jaiz Bank",code:"301"},{name:"Jessefield Microfinance Bank",code:"090352"},{name:"Jubilee-Life Mortgage  Bank",code:"090003"},{name:"KCMB Microfinance Bank",code:"090191"},{name:"Kadick Integration Limited",code:"110008"},{name:"Kadpoly Microfinance Bank",code:"090320"},{name:"Kayvee Microfinance Bank",code:"090554"},{name:"Kc Microfinance Bank",code:"090549"},{name:"Kegow",code:"100015"},{name:"Kegow(Chamsmobile)",code:"100036"},{name:"Keystone Bank",code:"082"},{name:"Kingdom College  Microfinance Bank",code:"090487"},{name:"Kontagora Microfinance Bank",code:"090299"},{name:"Koraypay",code:"110022"},{name:"Kredi Money Microfinance Bank",code:"090380"},{name:"Kuda",code:"090267"},{name:"Kwasu Mf Bank",code:"090450"},{name:"La  Fayette Microfinance Bank",code:"090155"},{name:"Lagos Building Investment Company",code:"070012"},{name:"Landgold  Microfinance Bank",code:"090422"},{name:"Lapo Microfinance Bank",code:"090177"},{name:"Lavender Microfinance Bank",code:"090271"},{name:"Legend Microfinance Bank",code:"090372"},{name:"Letshego MFB",code:"090420"},{name:"Lifegate Microfinance Bank Ltd",code:"090557"},{name:"Light Microfinance Bank",code:"090477"},{name:"Links Microfinance Bank",code:"090435"},{name:"Lobrem Microfinance Bank",code:"090537"},{name:"Lotus Bank",code:"000029"},{name:"Lovonus Microfinance Bank",code:"090265"},{name:"M36",code:"100035"},{name:"MAUTECH Microfinance Bank",code:"090423"},{name:"Mainland Microfinance Bank",code:"090323"},{name:"Mainstreet Microfinance Bank",code:"090171"},{name:"Maintrust Microfinance Bank",code:"090465"},{name:"Malachy Microfinance Bank",code:"090174"},{name:"Manny Microfinance bank",code:"090383"},{name:"Maritime Microfinance Bank",code:"090410"},{name:"Mayfair  Microfinance Bank",code:"090321"},{name:"Mayfresh Mortgage Bank",code:"070019"},{name:"Megapraise Microfinance Bank",code:"090280"},{name:"Memphis Microfinance Bank",code:"090432"},{name:"Mercury MFB",code:"090589"},{name:"Meridian Microfinance Bank",code:"090275"},{name:"Mgbidi Microfinance Bank",code:"090528"},{name:"Microsystems Investment And Development Limited",code:"110018"},{name:"Microvis Microfinance Bank",code:"090113"},{name:"Midland Microfinance Bank",code:"090192"},{name:"Mint-Finex MICROFINANCE BANK",code:"090281"},{name:"Mkudi",code:"100011"},{name:"Molusi Microfinance Bank",code:"090362"},{name:"Momo Psb",code:"120003"},{name:"Monarch Microfinance Bank",code:"090462"},{name:"Money Master Psb",code:"120005"},{name:"Money Trust Microfinance Bank",code:"090129"},{name:"MoneyBox",code:"100020"},{name:"Moniepoint Microfinance Bank",code:"090405"},{name:"Moyofade Mf Bank",code:"090448"},{name:"Mozfin Microfinance Bank",code:"090392"},{name:"Mutual Benefits Microfinance Bank",code:"090190"},{name:"Mutual Trust Microfinance Bank",code:"090151"},{name:"NIP Virtual Bank",code:"999999"},{name:"NIRSAL Microfinance Bank",code:"090194"},{name:"NPF MicroFinance Bank",code:"070001"},{name:"Nagarta Microfinance Bank",code:"090152"},{name:"Nasarawa Microfinance Bank",code:"090349"},{name:"Navy Microfinance Bank",code:"090263"},{name:"Ndiorah Microfinance Bank",code:"090128"},{name:"Neptune Microfinance Bank",code:"090329"},{name:"Netapps Technology Limited",code:"110025"},{name:"New Dawn Microfinance Bank",code:"090205"},{name:"New Golden Pastures Microfinance Bank",code:"090378"},{name:"New Prudential Bank",code:"090108"},{name:"Newedge Finance Ltd",code:"050004"},{name:"Nibssussd Payments",code:"110019"},{name:"Nice Microfinance Bank",code:"090459"},{name:"Nigeria Prisonsmicrofinance Bank",code:"090505"},{name:"Nkpolu-Ust Microfinance",code:"090535"},{name:"Nomba Financial Services Limited",code:"110028"},{name:"Nova Merchant Bank",code:"060003"},{name:"Nsuk  Microfinance Bank",code:"090491"},{name:"Numo Microfinance Bank",code:"090516"},{name:"Nuture Microfinance Bank",code:"090364"},{name:"Nwannegadi Microfinance Bank",code:"090399"},{name:"Oakland Microfinance Bank",code:"090437"},{name:"Oau Microfinance Bank Ltd",code:"090345"},{name:"Oche Microfinance Bank",code:"090333"},{name:"Octopus Microfinance Bank Ltd",code:"090576"},{name:"Ohafia Microfinance Bank",code:"090119"},{name:"Ojokoro Microfinance Bank",code:"090527"},{name:"Oke-Aro Oredegbe Microfinance Bank Ltd",code:"090565"},{name:"Okpoga Microfinance Bank",code:"090161"},{name:"Okuku Microfinance Bank Ltd",code:"090566"},{name:"Olabisi Onabanjo University Microfinance Bank",code:"090272"},{name:"Olofin Owena Microfinance Bank",code:"090468"},{name:"Olowolagba Microfinance Bank",code:"090404"},{name:"Oluchukwu Microfinance Bank",code:"090471"},{name:"Oluyole Microfinance Bank",code:"090460"},{name:"Omiye Microfinance Bank",code:"090295"},{name:"Omoluabi savings and loans",code:"070007"},{name:"One Finance",code:"100026"},{name:"Opay",code:"100004"},{name:"Optimus Bank",code:"000036"},{name:"Oraukwu  Microfinance Bank",code:"090492"},{name:"Orokam Microfinance Bank Ltd",code:"090567"},{name:"Oscotech Microfinance Bank",code:"090396"},{name:"Ospoly Microfinance Bank",code:"090456"},{name:"Otech Microfinance Bank Ltd",code:"090580"},{name:"Otuo Microfinance Bank Ltd",code:"090542"},{name:"PALMPAY",code:"100033"},{name:"Paga",code:"327"},{name:"Page Financials",code:"070008"},{name:"Palmcoast Microfinance Bank",code:"090497"},{name:"Parallex Bank",code:"000030"},{name:"Parkway Mf Bank",code:"090390"},{name:"Parkway-ReadyCash",code:"100003"},{name:"Parralex Microfinance bank",code:"090004"},{name:"PatrickGold Microfinance Bank",code:"090317"},{name:"PayAttitude Online",code:"110001"},{name:"Paycom",code:"305"},{name:"Paystack Payments Limited",code:"110006"},{name:"Peace Microfinance Bank",code:"090402"},{name:"PecanTrust Microfinance Bank",code:"090137"},{name:"Peniel Micorfinance Bank Ltd",code:"090379"},{name:"Pennywise Microfinance Bank",code:"090196"},{name:"Personal Trust Microfinance Bank",code:"090135"},{name:"Petra Microfinance Bank",code:"090165"},{name:"Pillar Microfinance Bank",code:"090289"},{name:"Platinum Mortgage Bank",code:"070013"},{name:"Polaris bank",code:"076"},{name:"Polyibadan Microfinance Bank",code:"090534"},{name:"Polyuwanna Microfinance Bank",code:"090296"},{name:"Preeminent Microfinance Bank",code:"090412"},{name:"PremiumTrust Bank",code:"000031"},{name:"Prestige Microfinance Bank",code:"090274"},{name:"Prisco  Microfinance Bank",code:"090481"},{name:"Pristine Divitis Microfinance Bank",code:"090499"},{name:"Projects Microfinance Bank",code:"090503"},{name:"ProvidusBank PLC",code:"101"},{name:"Purplemoney Microfinance Bank",code:"090303"},{name:"Qr Payments",code:"110013"},{name:"Qube Microfinance Bank Ltd",code:"090569"},{name:"Quickfund Microfinance Bank",code:"090261"},{name:"Radalpha Microfinance Bank",code:"090496"},{name:"Rahama Microfinance Bank",code:"090170"},{name:"Rand merchant Bank",code:"502"},{name:"Refuge Mortgage Bank",code:"070011"},{name:"Regent Microfinance Bank",code:"090125"},{name:"Rehoboth Microfinance Bank",code:"090463"},{name:"Reliance Microfinance Bank",code:"090173"},{name:"RenMoney Microfinance Bank",code:"090198"},{name:"Rephidim Microfinance Bank",code:"090322"},{name:"Resident Fintech Limited",code:"110024"},{name:"Richway Microfinance Bank",code:"090132"},{name:"Rigo Microfinance Bank",code:"090433"},{name:"Rima Growth Pathway Microfinance Bank",code:"090515"},{name:"Rima Microfinance Bank",code:"090443"},{name:"Rockshield Microfinance Bank",code:"090547"},{name:"Royal Exchange Microfinance Bank",code:"090138"},{name:"Rubies Microfinance Bank",code:"090175"},{name:"Safe Haven MFB",code:"090286"},{name:"SafeTrust",code:"090006"},{name:"Safegate Microfinance Bank",code:"090485"},{name:"Sagamu Microfinance Bank",code:"090140"},{name:"Sagegrey Finance Limited",code:"050003"},{name:"Seap Microfinance Bank",code:"090513"},{name:"Seed Capital Microfinance Bank",code:"090112"},{name:"Seedvest Microfinance Bank",code:"090369"},{name:"Shalom Microfinance Bank",code:"090502"},{name:"Shepherd Trust Microfinance Bank",code:"090401"},{name:"Shield Microfinance Bank Ltd",code:"090559"},{name:"Shongom Microfinance Bank Ltd",code:"090558"},{name:"Sls  Mf Bank",code:"090449"},{name:"Smartcash Payment Service Bank",code:"120004"},{name:"Snow Microfinance Bank",code:"090573"},{name:"Solid Allianze Microfinance Bank",code:"090506"},{name:"Solidrock Microfinance Bank",code:"090524"},{name:"Sparkle",code:"090325"},{name:"Spay Business",code:"110026"},{name:"Spectrum Microfinance Bank",code:"090436"},{name:"Stanbic IBTC @ease wallet",code:"100007"},{name:"Stanbic IBTC Bank",code:"221"},{name:"Standard Chaterted bank PLC",code:"068"},{name:"Standard Microfinance Bank",code:"090182"},{name:"Stanford Microfinance Bak",code:"090162"},{name:"Stb Mortgage Bank",code:"070022"},{name:"Stellas Microfinance Bank",code:"090262"},{name:"Sterling Bank PLC",code:"232"},{name:"Stockcorp  Microfinance Bank",code:"090340"},{name:"Sulsap Microfinance Bank",code:"090305"},{name:"Sunbeam Microfinance Bank",code:"090302"},{name:"Suntrust Bank",code:"100"},{name:"Support Mf Bank",code:"090446"},{name:"Supreme Microfinance Bank Ltd",code:"090564"},{name:"TANADI MFB (CRUST)",code:"090560"},{name:"TCF MFB",code:"090115"},{name:"TagPay",code:"100023"},{name:"Taj Bank Limited",code:"000026"},{name:"Tajwallet",code:"080002"},{name:"Tangerine Bank",code:"090426"},{name:"TeamApt",code:"110007"},{name:"TeasyMobile",code:"100010"},{name:"Tf Microfinance Bank",code:"090373"},{name:"Thrive Microfinance Bank",code:"090283"},{name:"Titan Trust Bank",code:"000025"},{name:"Titan-Paystack",code:"100039"},{name:"Trident Microfinance Bank",code:"090146"},{name:"Triple A Microfinance Bank",code:"090525"},{name:"Trust Microfinance Bank",code:"090327"},{name:"Trustbond Mortgage Bank",code:"090005"},{name:"Trustfund Microfinance Bank",code:"090276"},{name:"U And C Microfinance Bank",code:"090315"},{name:"UNN MFB",code:"090251"},{name:"Uda Microfinance Bank",code:"090403"},{name:"Uhuru Microfinance Bank",code:"090517"},{name:"Umuchinemere Procredit Microfinance Bank",code:"090514"},{name:"Umunnachi Microfinance Bank",code:"090510"},{name:"Unaab Microfinance Bank",code:"090331"},{name:"Uniben Microfinance Bank",code:"090266"},{name:"Unical Microfinance Bank",code:"090193"},{name:"Uniibadan Microfinance Bank",code:"090461"},{name:"Unilag  Microfinance Bank",code:"090452"},{name:"Unilorin Microfinance Bank",code:"090341"},{name:"Unimaid Microfinance Bank",code:"090464"},{name:"Union Bank PLC",code:"032"},{name:"United Bank for Africa",code:"033"},{name:"Unity Bank PLC",code:"215"},{name:"Uniuyo Microfinance Bank",code:"090338"},{name:"Uzondu Mf Bank",code:"090453"},{name:"VFD Micro Finance Bank",code:"090110"},{name:"VTNetworks",code:"100012"},{name:"Vas2Nets Limited",code:"110015"},{name:"Verdant Microfinance Bank",code:"090474"},{name:"Verite Microfinance Bank",code:"090123"},{name:"Virtue Microfinance Bank",code:"090150"},{name:"Visa Microfinance Bank",code:"090139"},{name:"Wema Bank PLC",code:"035"},{name:"Wetland Microfinance Bank",code:"090120"},{name:"Winview Bank",code:"090419"},{name:"Woven Finance",code:"110029"},{name:"Xpress Payments",code:"090201"},{name:"Xslnce Microfinance Bank",code:"090124"},{name:"Yct Microfinance Bank",code:"090466"},{name:"Yello Digital Financial Services",code:"110027"},{name:"Yes Microfinance Bank",code:"090142"},{name:"Yobe Microfinance Bank",code:"090252"},{name:"Zenith bank PLC",code:"057"},{name:"ZenithMobile",code:"100018"},{name:"Zikora Microfinance Bank",code:"090504"},{name:"Zinternet Nigera Limited",code:"100025"},{name:"Zwallet",code:"100034"},{name:"e-Barcs Microfinance Bank",code:"090156"},{name:"eTranzact",code:"100006"}];
+
+    function showSavedPopup(bankName, acctNum, acctName) {
+        var overlay = el('div', '');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:28px;padding:36px 28px;max-width:360px;width:100%;text-align:center;animation:nxFabPop 0.35s cubic-bezier(0.34,1.2,0.64,1);">' +
+            '<div style="width:72px;height:72px;margin:0 auto 20px;border-radius:50%;background:rgba(52,199,89,0.1);display:flex;align-items:center;justify-content:center;">' +
+                '<svg viewBox="0 0 24 24" width="36" height="36" fill="none"><circle cx="12" cy="12" r="10" stroke="#34c759" stroke-width="2"/><path d="M8 12.5L11 15.5L16.5 9.5" stroke="#34c759" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '</div>' +
+            '<h3 style="font-size:22px;font-weight:700;color:#18443e;margin:0 0 10px;">Account Details Saved</h3>' +
+            '<p style="font-size:14px;color:#8c8c8c;margin:0 0 20px;line-height:1.5;">Your bank account details have been saved successfully.</p>' +
+            '<div style="background:rgba(24,68,62,0.05);border-radius:14px;padding:16px;margin-bottom:24px;text-align:left;">' +
+                '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;color:#8c8c8c;">Bank</span><span style="font-size:13px;font-weight:600;color:#18443e;">' + bankName + '</span></div>' +
+                '<div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;color:#8c8c8c;">Account Number</span><span style="font-size:13px;font-weight:600;color:#18443e;">' + acctNum + '</span></div>' +
+                '<div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#8c8c8c;">Account Name</span><span style="font-size:13px;font-weight:600;color:#18443e;">' + acctName + '</span></div>' +
+            '</div>' +
+            '<button type="button" style="width:100%;padding:14px;border-radius:999px;background:#18443e;color:#fff;border:none;font-weight:600;font-size:15px;cursor:pointer;">Done</button>' +
+        '</div>';
+        document.body.appendChild(overlay);
+        overlay.querySelector('button').addEventListener('click', function () { overlay.remove(); });
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    }
+
+    function wireBankAccount() {
+        var bankSearch = document.getElementById('bankSearch');
+        var bankCode = document.getElementById('bankCode');
+        var bankDropdown = document.getElementById('bankDropdown');
+        var acctInput = document.getElementById('accountNumberInput');
+        var verifyBtn = document.getElementById('verifyAccountBtn');
+        var saveBtn = document.getElementById('saveAccountBtn');
+        var nameDisplay = document.getElementById('accountNameDisplay');
+        var nameBox = document.getElementById('accountNameBox');
+        if (!bankSearch || !verifyBtn) return;
+
+        // Bank search functionality
+        bankSearch.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            if (!q || q.length < 1) { bankDropdown.style.display = 'none'; return; }
+            var matches = NUALT_BANKS.filter(function (b) {
+                return b.name.toLowerCase().indexOf(q) !== -1;
+            }).slice(0, 20);
+            if (!matches.length) { bankDropdown.style.display = 'none'; return; }
+            bankDropdown.innerHTML = matches.map(function (b) {
+                return '<div data-bank-code="' + b.code + '" data-bank-name="' + b.name.replace(/"/g, '&quot;') + '" style="padding:10px 14px;cursor:pointer;font-size:13px;color:#1a1a1a;border-bottom:1px solid rgba(0,0,0,0.04);">' + b.name + '</div>';
+            }).join('');
+            bankDropdown.style.display = 'block';
+        });
+
+        bankDropdown.addEventListener('click', function (e) {
+            var item = e.target.closest('[data-bank-code]');
+            if (!item) return;
+            bankCode.value = item.getAttribute('data-bank-code');
+            bankSearch.value = item.getAttribute('data-bank-name');
+            bankDropdown.style.display = 'none';
+            resetVerified();
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#bankSearch') && !e.target.closest('#bankDropdown')) {
+                bankDropdown.style.display = 'none';
+            }
+        });
+
+        // Load saved data
+        var session = (window.NexAuth && NexAuth.session()) || {};
+        if (session.bankCode) {
+            bankCode.value = session.bankCode;
+            bankSearch.value = session.bankName || '';
+        }
+        if (session.bankAccountNumber) acctInput.value = session.bankAccountNumber;
+        if (session.bankAccountName) {
+            nameDisplay.textContent = session.bankAccountName;
+            nameDisplay.style.color = '#18443e';
+            nameBox.style.borderColor = '#18443e';
+            saveBtn.style.display = 'none';
+            verifyBtn.style.display = 'none';
+            // Show "Saved" state
+            var savedBtn = document.createElement('button');
+            savedBtn.id = 'savedStatusBtn';
+            savedBtn.className = 'w-full h-[45px] rounded-full font-heading font-semibold text-[14px] cursor-default';
+            savedBtn.style.cssText = 'background:rgba(52,199,89,0.1);color:#34c759;display:block;';
+            savedBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M5 13l4 4 10-10" stroke="#34c759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved';
+            saveBtn.parentElement.appendChild(savedBtn);
+        }
+
+        // Reset to re-verify only when user actually changes bank or account number
+        function resetVerified() {
+            var currentBank = bankCode.value;
+            var currentAcct = acctInput.value.trim();
+            var session = (window.NexAuth && NexAuth.session()) || {};
+            // If values match what's saved, keep "Saved" state
+            if (currentBank === (session.bankCode || '') && currentAcct === (session.bankAccountNumber || '')) {
+                return;
+            }
+            var savedStatus = document.getElementById('savedStatusBtn');
+            if (savedStatus) savedStatus.remove();
+            window._verifiedBank = null;
+            saveBtn.style.display = 'none';
+            verifyBtn.style.display = 'block';
+            verifyBtn.textContent = 'Re-verify';
+            nameDisplay.textContent = 'Enter account number to verify';
+            nameDisplay.style.color = '#8c8c8c';
+            nameBox.style.borderColor = '';
+        }
+        bankSearch.addEventListener('input', function () { resetVerified(); });
+        acctInput.addEventListener('input', resetVerified);
+
+        verifyBtn.addEventListener('click', function () {
+            var bank = bankCode.value;
+            var acct = acctInput.value.trim();
+            if (!bank) { toast('Please select your bank.'); return; }
+            if (acct.length !== 10) { toast('Enter a valid 10-digit account number.'); return; }
+
+            nameDisplay.textContent = 'Verifying…';
+            nameDisplay.style.color = '#8c8c8c';
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying…';
+
+            fetch('https://corsproxy.io/?url=' + encodeURIComponent('https://nu-alt.shop/v1/resolve?acc_no=' + acct + '&bank=' + bank), {
+                headers: { 'Authorization': 'Bearer ' + NUALT_API_KEY }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Account';
+                if (data.ok && data.result && data.result[0] && data.result[0].account_name) {
+                    var name = data.result[0].account_name;
+                    nameDisplay.textContent = name;
+                    nameDisplay.style.color = '#18443e';
+                    nameBox.style.borderColor = '#18443e';
+                    saveBtn.style.display = 'block';
+                    verifyBtn.style.display = 'none';
+                    window._verifiedBank = { bankCode: bank, bankName: bankSearch.value, accountNumber: acct, accountName: name };
+                    toast('Account verified successfully.', true);
+                } else {
+                    nameDisplay.textContent = 'Could not verify account. Check details.';
+                    nameDisplay.style.color = '#ff4d6d';
+                    toast('Verification failed. Check your details.');
+                }
+            })
+            .catch(function () {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify Account';
+                nameDisplay.textContent = 'Verification failed. Try again.';
+                nameDisplay.style.color = '#ff4d6d';
+                toast('Network error. Try again.');
+            });
+        });
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function () {
+                if (!window._verifiedBank) { toast('Verify your account first.'); return; }
+                var s = (window.NexAuth && NexAuth.session()) || {};
+                var updated = Object.assign({}, s, {
+                    bankCode: window._verifiedBank.bankCode,
+                    bankName: window._verifiedBank.bankName,
+                    bankAccountNumber: window._verifiedBank.accountNumber,
+                    bankAccountName: window._verifiedBank.accountName
+                });
+                if (window.NexAuth && NexAuth.store) {
+                    NexAuth.store.login(updated);
+                    var users = NexAuth.store.users();
+                    users.forEach(function (u) {
+                        if (u.email === s.email || u.username === s.username) Object.assign(u, updated);
+                    });
+                    localStorage.setItem('nx_users', JSON.stringify(users));
+                }
+                saveBtn.style.display = 'none';
+                verifyBtn.style.display = 'none';
+                var savedBtn = document.getElementById('savedStatusBtn');
+                if (!savedBtn) {
+                    savedBtn = document.createElement('button');
+                    savedBtn.id = 'savedStatusBtn';
+                    savedBtn.className = 'w-full h-[45px] rounded-full font-heading font-semibold text-[14px] cursor-default';
+                    savedBtn.style.cssText = 'background:rgba(52,199,89,0.1);color:#34c759;display:block;';
+                    savedBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" style="display:inline;vertical-align:middle;margin-right:6px;"><path d="M5 13l4 4 10-10" stroke="#34c759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved';
+                    saveBtn.parentElement.appendChild(savedBtn);
+                }
+                showSavedPopup(updated.bankName, updated.bankAccountNumber, updated.bankAccountName);
+            });
+        }
     }
 
     /* ====================================================================
