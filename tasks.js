@@ -1834,10 +1834,8 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             verifyBtn.disabled = true;
             verifyBtn.textContent = 'Verifying…';
 
-            fetch('https://corsproxy.io/?url=' + encodeURIComponent('https://nu-alt.shop/v1/resolve?acc_no=' + acct + '&bank=' + bank), {
-                headers: { 'Authorization': 'Bearer ' + NUALT_API_KEY }
-            })
-            .then(function (r) { return r.json(); })
+            fetch('/api/resolve?acc_no=' + acct + '&bank=' + bank)
+                .then(function (r) { return r.json(); })
             .then(function (data) {
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify Account';
