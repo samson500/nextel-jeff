@@ -1400,7 +1400,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         var n = el('nx-incoming-call', '');
         n.innerHTML = `
             <div class="nx-ic-icon">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M3 8C3 6.34315 4.34315 5 6 5H18C19.6569 5 21 6.34315 21 8V15C21 16.6569 19.6569 18 18 18H10L6 21V18H6C4.34315 18 3 16.6569 3 15V8Z" fill="#fff"/></svg>
+                <svg viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.35 3.53c.53-.53 1.45-.42 1.85.2l1.7 2.67c.33.52.25 1.2-.2 1.62l-1.2 1.14c-.25.24-.31.61-.16.92.83 1.7 2.22 3.1 3.93 3.93.31.15.68.09.92-.16l1.14-1.2c.42-.45 1.1-.53 1.62-.2l2.67 1.7c.62.4.73 1.32.2 1.85l-1.32 1.32c-.6.6-1.48.83-2.3.58-4.66-1.42-8.37-5.13-9.79-9.79-.25-.82-.02-1.7.58-2.3l1.32-1.32Z" fill="#fff"/></svg>
             </div>
             <div class="nx-ic-info">
                 <strong>Incoming call from ${brand}</strong>
@@ -1528,19 +1528,19 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             } else if (t.hasAttribute('data-nx-wd-close')) {
                 hideWithdrawPage();
             } else if (t.hasAttribute('data-nx-wd-withdraw')) {
-                // Activation check FIRST — inactive users hit the gate
-                if (!isActive()) {
-                    hideWithdrawPage();
-                    showGate();
-                    return;
-                }
-                // Bank details check
+                // 1. Bank details check FIRST
                 var session = (window.NexAuth && NexAuth.session()) || {};
                 if (!session.bankAccountName) {
                     showBankRequiredPopup();
                     return;
                 }
-                // Then balance check
+                // 2. Activation check — inactive users hit the gate
+                if (!isActive()) {
+                    hideWithdrawPage();
+                    showGate();
+                    return;
+                }
+                // 3. Balance check
                 if (earnings() < CONST.WITHDRAW_THRESHOLD) {
                     showWithdrawLockedPopup();
                     return;
@@ -1644,6 +1644,8 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         var isChangePassword = /\/change-password\.html/.test(window.location.pathname);
 
         if (isTransactions) {
+            document.body.appendChild(buildGate());
+            document.body.appendChild(buildEsimModal());
             document.body.appendChild(buildSuccessScreen());
             document.body.appendChild(buildIncomingCall());
             document.body.appendChild(buildInactiveFab());
