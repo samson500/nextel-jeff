@@ -10,7 +10,7 @@ export default async function handler(req, res) {
             `https://nu-alt.shop/v1/resolve?acc_no=${acc_no}&bank=${bank}`,
             {
                 headers: {
-                    'Authorization': 'Bearer ' + process.env.NUALT_API_KEY
+                    'Authorization': 'Bearer nualt_DD3Aw3Da23PNo3aRlvzfk7Oa9bASFOK_J9hssvibSWc'
                 }
             }
         );
