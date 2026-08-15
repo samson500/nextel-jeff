@@ -245,6 +245,14 @@
         });
     }
 
+    function wireTelegramChannelLink() {
+        var link = document.getElementById('tgChannelLink');
+        if (!link) return;
+        loadNextelConfig().then(function (config) {
+            if (config.telegramLink) link.href = config.telegramLink;
+        });
+    }
+
     var PLAN_MAP = {
         premium: { label: 'Diamond E-sim', amount: CONST.DIAMOND_PRICE, linkField: 'paymentLink1' },
         elite:   { label: 'Royal E-sim',   amount: CONST.ROYAL_PRICE,   linkField: 'paymentLink2' }
@@ -1713,6 +1721,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             injectIntoDashboard();
             refreshAll();
             wireEvents();
+            wireTelegramChannelLink();
             startIncomingCallLoop();
             initFabDrag();
             updateFabVisibility();
