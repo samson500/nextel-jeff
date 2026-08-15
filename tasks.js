@@ -675,7 +675,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                         <h4>Diamond E-sim</h4>
                         <div class="nx-price"><strong>₦${CONST.DIAMOND_PRICE.toLocaleString()}</strong><span>One-time fee</span></div>
                     </div>
-                    <p class="nx-plan-perk">Earn up to ₦54,000 daily · 1 month</p>
+                    <p class="nx-plan-perk">Earn up to ₦54,000 in 1 month</p>
                 </button>
 
                 <button type="button" class="nx-plan nx-popular" data-nx-plan="elite" data-amount="${CONST.ROYAL_PRICE}">
@@ -684,7 +684,7 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
                         <h4>Royal E-sim</h4>
                         <div class="nx-price"><strong>₦${CONST.ROYAL_PRICE.toLocaleString()}</strong><span>One-time fee</span></div>
                     </div>
-                    <p class="nx-plan-perk">Earn up to ₦108,000 daily · 1 month</p>
+                    <p class="nx-plan-perk">Earn up to ₦1,000,000 in 1 month</p>
                 </button>
             </div>
         `;
@@ -1389,84 +1389,117 @@ nx-success button { width: 100%; padding: 14px; border-radius: 999px; background
     }
 
     /* ====================================================================
-     * INCOMING CALL NUDGE (re-appears every 10s until activated)
+     * NUDGE CYCLE (call → 5s → message → 12s → call, until activated)
      * ==================================================================== */
     var NUDGE_BRANDS = ['Opay', 'PalmPay', 'OKash'];
     var NUDGE_AMOUNTS = [2500, 3000, 1800, 4200, 1500, 5000];
+    var NUDGE_CALL_RING_MS = 15000;  // unanswered call rings this long, then drops
+    var NUDGE_MSG_SIT_MS  = 12000;   // message sits this long, then drops
+    var NUDGE_MSG_AFTER_CALL_MS = 5000;  // call drops → 5s → message
+    var NUDGE_CALL_AFTER_MSG_MS = 12000; // message drops → 12s → call
 
-    function buildIncomingCall() {
+    var IC_CALL_SVG = '<svg viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.35 3.53c.53-.53 1.45-.42 1.85.2l1.7 2.67c.33.52.25 1.2-.2 1.62l-1.2 1.14c-.25.24-.31.61-.16.92.83 1.7 2.22 3.1 3.93 3.93.31.15.68.09.92-.16l1.14-1.2c.42-.45 1.1-.53 1.62-.2l2.67 1.7c.62.4.73 1.32.2 1.85l-1.32 1.32c-.6.6-1.48.83-2.3.58-4.66-1.42-8.37-5.13-9.79-9.79-.25-.82-.02-1.7.58-2.3l1.32-1.32Z" fill="#fff"/></svg>';
+    var IC_MSG_SVG  = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8C3 6.34315 4.34315 5 6 5H18C19.6569 5 21 6.34315 21 8V15C21 16.6569 19.6569 18 18 18H10L6 21V18H6C4.34315 18 3 16.6569 3 15V8Z" fill="#fff"/></svg>';
+
+    function buildIncomingCall(type) {
+        var isCall = type === 'call';
         var brand = NUDGE_BRANDS[Math.floor(Math.random() * NUDGE_BRANDS.length)];
         var amount = NUDGE_AMOUNTS[Math.floor(Math.random() * NUDGE_AMOUNTS.length)];
         var n = el('nx-incoming-call', '');
+        n.setAttribute('data-nx-nudge', type);
         n.innerHTML = `
-            <div class="nx-ic-icon">
-                <svg viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.35 3.53c.53-.53 1.45-.42 1.85.2l1.7 2.67c.33.52.25 1.2-.2 1.62l-1.2 1.14c-.25.24-.31.61-.16.92.83 1.7 2.22 3.1 3.93 3.93.31.15.68.09.92-.16l1.14-1.2c.42-.45 1.1-.53 1.62-.2l2.67 1.7c.62.4.73 1.32.2 1.85l-1.32 1.32c-.6.6-1.48.83-2.3.58-4.66-1.42-8.37-5.13-9.79-9.79-.25-.82-.02-1.7.58-2.3l1.32-1.32Z" fill="#fff"/></svg>
-            </div>
+            <div class="nx-ic-icon">${isCall ? IC_CALL_SVG : IC_MSG_SVG}</div>
             <div class="nx-ic-info">
-                <strong>Incoming call from ${brand}</strong>
-                <span>Answer to earn &#8358;${amount.toLocaleString()}</span>
+                <strong>${isCall ? 'Incoming call from' : 'Message from'} ${brand}</strong>
+                <span>${isCall ? 'Answer' : 'Read'} to earn &#8358;${amount.toLocaleString()}</span>
             </div>
-            <button type="button" class="nx-ic-answer" data-nx-ic-answer>Answer</button>
-            <audio class="nx-ic-ringtone" src="ringtone.mp3" loop preload="auto" playsinline webkit-playsinline></audio>
+            <button type="button" class="nx-ic-answer" data-nx-ic-answer>${isCall ? 'Answer' : 'Read'}</button>
+            <audio class="nx-ic-ringtone" src="${isCall ? 'ringtone.mp3' : AUDIO_ROOT + 'message-ping.mp3'}" preload="auto" playsinline webkit-playsinline></audio>
         `;
         return n;
     }
 
     var incomingCallTimer = null;
+    var nudgeDropTimer = null;
     var ringShownCount = 0;
 
-    function showIncomingCall() {
-        // Rebuild with a fresh random brand + amount
+    function showIncomingCall(type) {
+        if (isActive()) return;
         var old = $('nx-incoming-call');
-        if (old) {
-            var fresh = buildIncomingCall();
-            old.parentElement.replaceChild(fresh, old);
-        }
+        var fresh = buildIncomingCall(type);
+        if (old) old.parentElement.replaceChild(fresh, old);
+        else document.body.appendChild(fresh);
         var n = $('nx-incoming-call');
         if (!n) return;
         n.classList.add('active');
-        // Ring only from the 2nd appearance onwards — the first happens
-        // before any user gesture, so mobile browsers would block audio.
+
+        // Sound from the 2nd appearance onwards — the first happens before
+        // any user gesture, so mobile browsers would block audio.
         ringShownCount++;
         if (ringShownCount > 1) {
             var ringtone = n.querySelector('.nx-ic-ringtone');
             if (ringtone) {
                 try {
+                    ringtone.pause();
                     ringtone.currentTime = 0;
                     ringtone.muted = false;
-                    ringtone.play().catch(function() {});
-                } catch(_) {}
+                    ringtone.loop = (type === 'call');
+                    ringtone.play().catch(function () {});
+                } catch (_) {}
             }
+        }
+
+        // Auto-drop if ignored
+        if (nudgeDropTimer) clearTimeout(nudgeDropTimer);
+        nudgeDropTimer = setTimeout(function () {
+            hideNudge(true);
+        }, type === 'call' ? NUDGE_CALL_RING_MS : NUDGE_MSG_SIT_MS);
+    }
+
+    function hideNudge(dropped) {
+        var n = $('nx-incoming-call');
+        if (!n) return;
+        var type = n.getAttribute('data-nx-nudge') || 'call';
+        n.classList.remove('active');
+        var ringtone = n.querySelector('.nx-ic-ringtone');
+        if (ringtone) { try { ringtone.pause(); } catch (_) {} }
+        if (nudgeDropTimer) { clearTimeout(nudgeDropTimer); nudgeDropTimer = null; }
+        // Continue the cycle: call → 5s → message → 12s → call
+        if (dropped) {
+            scheduleNextNudge(
+                type === 'call' ? 'message' : 'call',
+                type === 'call' ? NUDGE_MSG_AFTER_CALL_MS : NUDGE_CALL_AFTER_MSG_MS
+            );
         }
     }
 
-    function hideIncomingCall() {
-        var n = $('nx-incoming-call');
-        if (!n) return;
-        n.classList.remove('active');
-        var ringtone = n.querySelector('.nx-ic-ringtone');
-        if (ringtone) { try { ringtone.pause(); } catch(_){} }
+    function scheduleNextNudge(type, delay) {
+        if (incomingCallTimer) clearTimeout(incomingCallTimer);
+        incomingCallTimer = setTimeout(function () {
+            if (!isActive()) showIncomingCall(type);
+        }, delay);
     }
 
     function startIncomingCallLoop() {
-        // Show after 1.2s on page load if not activated
+        // First call 1.2s after page load if not activated
         setTimeout(function () {
-            if (!isActive()) showIncomingCall();
+            if (!isActive()) showIncomingCall('call');
         }, 1200);
 
-        // Wire the Answer button
+        // Answer / Read button
         document.addEventListener('click', function (e) {
             var btn = e.target.closest('[data-nx-ic-answer]');
             if (!btn) return;
+            var n = $('nx-incoming-call');
+            var type = (n && n.getAttribute('data-nx-nudge')) || 'call';
             var ringtone = btn.parentElement.querySelector('.nx-ic-ringtone');
-            if (ringtone) { try { ringtone.pause(); } catch(_){} }
-            hideIncomingCall();
+            if (ringtone) { try { ringtone.pause(); } catch (_) {} }
+            hideNudge(false);
             showGate();
-            // Re-show after 10s if still not activated
-            if (incomingCallTimer) clearTimeout(incomingCallTimer);
-            incomingCallTimer = setTimeout(function () {
-                if (!isActive()) showIncomingCall();
-            }, 15000);
+            scheduleNextNudge(
+                type === 'call' ? 'message' : 'call',
+                type === 'call' ? NUDGE_MSG_AFTER_CALL_MS : NUDGE_CALL_AFTER_MSG_MS
+            );
         });
     }
 
